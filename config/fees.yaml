@@ -1,0 +1,25 @@
+# Fee schedules — COST-016: fees are retrieved from the venue and their
+# retrieval date recorded, never assumed. Each schedule carries the evidence
+# it rests on; the loader refuses schedules whose values were never observed.
+schedules:
+  LHFXSA-Trade:
+    currency: USD
+    # OBSERVED on the MILE-023 canary (2026-09-21): a 0.01-lot EURUSD round
+    # trip booked exactly $0.06 commission = $6.00 per lot round trip. The
+    # previously documented $7.00 was placeholder drift; corrected downward,
+    # which is the conservative direction for an already-modelled cost.
+    commission_per_lot_round_trip: 6.00
+    # Not yet observed: the canary holds for seconds and cannot see rollover.
+    # The loader refuses to build a FeeSchedule from this file until the
+    # reset-boundary canary records real swap rates — a backtest silently
+    # charging zero swap would understate costs (COST-016).
+    swap_long_per_lot_per_day: null
+    swap_short_per_lot_per_day: null
+    swaps_observed: false
+    triple_swap_weekdays: [2]   # Wednesday, venue convention — UNVERIFIED
+    holidays: []
+    provenance:
+      source_url: "data/canary/canary_20260920T225244046195Z.json"
+      retrieved_at: "2026-09-21T01:52:44+00:00"
+      evidence_sha256: "64c2d4cd3e373884431c332607a77c9091e710ef41a5b5a39fa3c849d2b3de61"
+      observed_on_server: true

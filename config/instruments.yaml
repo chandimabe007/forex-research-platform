@@ -1,0 +1,52 @@
+# Instrument definitions — DATA-002. Values marked OBSERVE must be re-queried
+# from the venue (EXEC-033) before submission; the values below are placeholders
+# that the capability probe (MILE-021) refreshes into data/probe/.
+instruments:
+  EURUSD:
+    venue_symbol: "EURUSD"
+    point_size: 0.00001
+    pip_size: 0.0001
+    contract_size: 100000
+    tick_size: 0.00001
+    quote_currency: USD
+    volume_min: 0.01
+    volume_step: 0.01
+    volume_max: 1000.0
+    stops_level_points: 0   # OBSERVE — GATE-011
+    freeze_level_points: 0  # OBSERVE — GATE-011
+  GBPUSD:
+    venue_symbol: "GBPUSD"
+    point_size: 0.00001
+    pip_size: 0.0001
+    contract_size: 100000
+    tick_size: 0.00001
+    quote_currency: USD
+    volume_min: 0.01
+    volume_step: 0.01
+    volume_max: 1000.0
+    stops_level_points: 0
+    freeze_level_points: 0
+  USDJPY:
+    venue_symbol: "USDJPY"
+    point_size: 0.001
+    pip_size: 0.01
+    contract_size: 100000
+    tick_size: 0.001
+    quote_currency: JPY
+    volume_min: 0.01
+    volume_step: 0.01
+    volume_max: 1000.0
+    stops_level_points: 0
+    freeze_level_points: 0
+  XAUUSD:
+    venue_symbol: "XAUUSD"
+    point_size: 0.01
+    pip_size: 0.1
+    contract_size: 100
+    tick_size: 0.01
+    quote_currency: USD
+    volume_min: 0.01
+    volume_step: 0.01
+    volume_max: 1000.0
+    stops_level_points: 0
+    freeze_level_points: 0

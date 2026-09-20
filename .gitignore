@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Credentials never in the repository (SEC-001). .env is local development only.
+.env
+
+# Data directories: venue capture, ticks, probe records, manifests of local runs
+data/

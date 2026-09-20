@@ -1,0 +1,106 @@
+# The CHAL-010 rule model — firm-agnostic: replace with the verified rules for
+# your chosen firm + programme + account type triple (PROD-023, MILE-020).
+# Every field is unknown | not_applicable | verified (CHAL-011). The research
+# entry points refuse to run while any rule is unknown.
+# This template carries placeholder provenance and is NOT verified data.
+provider: example_firm
+programme: challenge_2_step
+account_type: swing
+rule_set_version: "2026-09-20"
+
+timezone:
+  iana_zone: Europe/Prague   # GATE-005 — a zone, not an offset
+  source: "to be recorded from the firm's platform documentation"
+
+phases:
+  challenge:
+    rules:
+      profit_target:
+        status: unknown
+        value: { kind: percent_initial_capital, value: null }
+        breach_semantics: hits
+        breach_severity: soft
+        provenance: { source_url: "", retrieved_at: null }
+      maximum_daily_loss:
+        status: unknown
+        value: { kind: percent_initial_capital, value: null }
+        floor_basis: balance_at_reset_minus_amount
+        monitored_value: equity_including_fees_and_swap
+        ratchet_on_equity: false          # GATE-003 — verify against the firm's wording
+        breach_semantics: falls_below
+        breach_severity: hard
+        reset_local_time: "00:00:00"
+        provenance: { source_url: "", retrieved_at: null }
+      maximum_loss:
+        status: unknown
+        value: { kind: percent_initial_capital, value: null }
+        floor_basis: initial_balance_minus_amount
+        monitored_value: equity_including_fees_and_swap
+        ratchet_on_equity: false
+        breach_semantics: falls_below
+        breach_severity: hard
+        provenance: { source_url: "", retrieved_at: null }
+      minimum_trading_days:
+        status: unknown
+        value: { kind: count, value: null }
+        provenance: { source_url: "", retrieved_at: null }
+      time_limit_days:
+        status: unknown
+        value: { kind: duration_days, value: null }
+        provenance: { source_url: "", retrieved_at: null }
+  verification:
+    rules:
+      profit_target:
+        status: unknown
+        value: { kind: percent_initial_capital, value: null }
+        breach_semantics: hits
+        breach_severity: soft
+        provenance: { source_url: "", retrieved_at: null }
+      maximum_daily_loss:
+        status: unknown
+        value: { kind: percent_initial_capital, value: null }
+        floor_basis: balance_at_reset_minus_amount
+        monitored_value: equity_including_fees_and_swap
+        ratchet_on_equity: false
+        breach_semantics: falls_below
+        breach_severity: hard
+        reset_local_time: "00:00:00"
+        provenance: { source_url: "", retrieved_at: null }
+      maximum_loss:
+        status: unknown
+        value: { kind: percent_initial_capital, value: null }
+        floor_basis: initial_balance_minus_amount
+        monitored_value: equity_including_fees_and_swap
+        ratchet_on_equity: false
+        breach_semantics: falls_below
+        breach_severity: hard
+        provenance: { source_url: "", retrieved_at: null }
+  funded:
+    rules:
+      maximum_daily_loss:
+        status: unknown
+        value: { kind: percent_initial_capital, value: null }
+        floor_basis: balance_at_reset_minus_amount
+        monitored_value: equity_including_fees_and_swap
+        ratchet_on_equity: false
+        breach_semantics: falls_below
+        breach_severity: hard
+        reset_local_time: "00:00:00"
+        provenance: { source_url: "", retrieved_at: null }
+      maximum_loss:
+        status: unknown
+        value: { kind: percent_initial_capital, value: null }
+        floor_basis: initial_balance_minus_amount
+        monitored_value: equity_including_fees_and_swap
+        ratchet_on_equity: false
+        breach_semantics: falls_below
+        breach_severity: hard
+        provenance: { source_url: "", retrieved_at: null }
+      consistency_rule:
+        status: unknown
+        value: { kind: formula, value: null }
+        provenance: { source_url: "", retrieved_at: null }
+      news_restriction:
+        status: unknown
+        value: { kind: boolean, value: null }
+        provenance: { source_url: "", retrieved_at: null }

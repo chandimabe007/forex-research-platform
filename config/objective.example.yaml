@@ -1,0 +1,15 @@
+# The declared economic objective — PROD-010 (MILE-010 action).
+# Copy to config/objective.yaml and fill every field. An all-null template is
+# refused by the loader. The software builds and tests run without this file.
+objective:
+  target: null            # evaluation_pass | first_payout | sustained_payouts_12m
+  horizon: null           # the fixed period over which value is measured, e.g. "12 months"
+  target_annual_return: null   # e.g. 0.10 for 10% — used by GATE-031
+  volatility_budget: null      # annual, e.g. 0.10 — used by GATE-031 and VAL-020
+  retry_on_failure: null  # true | false — the attempt policy
+  account_size: null
+  account_type: null      # standard | swing | other
+  max_attempts: null
+  max_fee_budget: null
+  max_calendar_time: null
+  min_acceptable_env: null  # minimum expected net value below which this is not worth doing

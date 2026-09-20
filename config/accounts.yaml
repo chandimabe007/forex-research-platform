@@ -1,0 +1,10 @@
+# Account allowlist — EXEC-060, SEC-030. Connections to any account not listed
+# are refused before requesting trade permission. The raw login never enters
+# the repository: record sha256(login) as login_hash.
+# SECURITY: entries below were added from live probe output on 2026-09-21.
+allowlist:
+- login_hash: "b5e641bcd8aae41e2ae0dc3228515c981a591bed6d5312a304c02c1f663c68d4"
+  server: "LHFXSA-Trade"
+  account_type: demo        # demo | evaluation | funded
+  currency: USD
+  phase: demo

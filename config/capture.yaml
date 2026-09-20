@@ -1,0 +1,23 @@
+# Venue quote capture configuration — COST-013, DATA-013.
+# Session zone and continuity thresholds are provisional UTC values until the
+# server zone is verified (GATE-005) and thresholds are calibrated from
+# observed inter-quote intervals (DATA-013).
+symbols: [EURUSD, GBPUSD, USDJPY, XAUUSD]
+output_dir: data/raw/venue_quotes
+
+# Provisional continuity thresholds: a quote gap above this (per session)
+# marks coverage_ok=false on affected bars (DATA-013). Calibrate later.
+continuity_threshold_ms:
+  asia: 10000
+  london: 5000
+  new_york: 5000
+  overlap: 5000
+  rollover: 20000
+
+# COST-013 minimum independent episode counts per bucket. The report tracks
+# observed counts against these; the one-month model is provisional.
+episode_minimums:
+  rollover: 8
+  news_release: 3
+  market_open: 8
+  stressed_conditions: 8
