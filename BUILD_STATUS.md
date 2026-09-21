@@ -124,6 +124,19 @@ full clean pass plus one settle-flagged pass; account flat after each):
   acknowledgement builds a schedule without them (zero swap, no overnight
   holds).
 
+## Push protection
+
+GitHub branch protection (required status checks) is a **paid feature on
+private repositories** — the API refuses it on the free plan. The free,
+local equivalent is in place instead: a tracked `hooks/pre-push` gate,
+wired with `git config core.hooksPath hooks`, that runs the **identical
+pre-commit board CI runs** (hygiene, ruff, ruff format, pytest, spec
+checker) before any branch is pushed, failing closed on a missing venv,
+a dirty working tree, or any hook failure. Deletion-only pushes skip it;
+`--no-verify` remains the explicit bypass. `hooks/pre-commit` (the
+generated shim) is clone-local and git-ignored. CI still runs on every
+push as the independent server-side record.
+
 ## Known limitations
 
 - MT5 adapter requires the MetaTrader 5 terminal on Windows with

@@ -16,3 +16,8 @@ dist/
 # happened: CI caught the missing modules on the first push).
 /data/
 .venv-ci/
+
+# pre-commit's generated shims, when hooks/ is the configured hooksPath
+# (core.hooksPath=hooks — see hooks/pre-push). Clone-local build artifacts;
+# the only tracked hook is hooks/pre-push.
+/hooks/pre-commit

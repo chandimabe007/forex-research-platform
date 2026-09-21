@@ -19,6 +19,7 @@ A measuring instrument for systematic forex ideas: it tests whether an idea surv
 - Python 3.11+ in a virtual environment at `.venv`. The `MetaTrader5` Python package works only on Windows.
 - Historical tick data (Dukascopy) will be supplied by the user later, into `data/raw/ticks/`. Until then, build and test against small fixtures.
 - Git from the first commit. Pre-registration and audit rules (`VAL-051`, `VAL-071`) depend on commit history.
+- Pushes are gated: `core.hooksPath` is `hooks/`, and the tracked `hooks/pre-push` runs the full pre-commit board (pytest, ruff, spec checker, hygiene) before any push; it fails closed on a dirty tree or missing venv. Never run `pre-commit install --hook-type pre-push` — it would overwrite the tracked gate with a shim.
 
 ## Firm-agnostic
 

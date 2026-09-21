@@ -1,0 +1,81 @@
+#!/bin/sh
+# Pre-push gate — the free, local equivalent of GitHub branch protection
+# (required status checks are a paid feature on private repositories).
+#
+# Nothing is pushed unless the full verification board — the identical
+# pre-commit run CI executes on every push (hygiene, ruff, ruff format,
+# pytest, spec checker) — has just passed against the exact tree this
+# checkout is pushing. The gate FAILS CLOSED: missing venv, missing
+# pre-commit, a dirty tree, or any hook failure all refuse the push.
+#
+# Deletion-only pushes skip the gate (nothing arrives on the server).
+# Bypass one-off with `git push --no-verify` — at your own risk.
+#
+# NOTE: never run `pre-commit install --hook-type pre-push`; it would
+# overwrite this tracked script with a generated shim.
+# Wired with: git config core.hooksPath hooks
+
+set -u
+
+zero=0000000000000000000000000000000000000000
+
+# The ref list arrives on stdin. A push consisting only of ref deletions
+# delivers nothing to the server — skip the gate.
+refs=$(cat)
+verify=0
+while read -r _local_ref local_sha _remote_ref _remote_sha; do
+    [ -n "$_local_ref" ] || continue
+    if [ "$local_sha" != "$zero" ]; then
+        verify=1
+    fi
+done <<EOF
+$refs
+EOF
+if [ "$verify" -eq 0 ]; then
+    echo "pre-push: deletion-only push — nothing to verify."
+    exit 0
+fi
+
+echo "pre-push: running the verification gate..."
+
+PY=".venv/Scripts/python.exe"
+
+# 1. Fail closed when the toolchain is missing.
+if [ ! -x "$PY" ] || ! "$PY" -m pre_commit --version >/dev/null 2>&1; then
+    echo "pre-push: FAIL — the verification toolchain is unavailable." >&2
+    echo "pre-push: the gate must run, not be skipped. Restore it with:" >&2
+    echo "pre-push:   python -m venv .venv && .venv/Scripts/python -m pip install -e \".[dev,mt5]\"" >&2
+    echo "pre-push:   .venv/Scripts/python -m pre_commit install" >&2
+    exit 1
+fi
+
+# 2. The gate verifies the working tree; pushing is only honest when the tree
+#    matches the commit being pushed. A dirty tree would push something the
+#    gate never saw.
+if ! git diff --quiet || ! git diff --cached --quiet; then
+    echo "pre-push: FAIL — the working tree has uncommitted changes." >&2
+    echo "pre-push: commit (or stash) them; the gate verifies exactly what is pushed." >&2
+    exit 1
+fi
+
+# 3. The identical board CI runs: all files, all hooks.
+if ! "$PY" -m pre_commit run --all-files --show-diff-on-failure; then
+    echo "pre-push: gate FAILED — push refused." >&2
+    echo "pre-push: fix, re-commit, push again. (--no-verify bypasses this gate.)" >&2
+    exit 1
+fi
+
+# 4. Refs other than HEAD were not directly verified by the working-tree run.
+head=$(git rev-parse HEAD 2>/dev/null)
+while read -r local_ref local_sha _remote_ref _remote_sha; do
+    [ -n "$local_ref" ] || continue
+    [ "$local_sha" = "$zero" ] && continue
+    if [ -n "$head" ] && [ "$local_sha" != "$head" ]; then
+        echo "pre-push: WARNING — $local_ref is not HEAD; the gate verified the working tree, not $local_sha." >&2
+    fi
+done <<EOF
+$refs
+EOF
+
+echo "pre-push: gate passed."
+exit 0
