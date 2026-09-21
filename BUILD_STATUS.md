@@ -22,11 +22,17 @@ ambiguous, the choice made is recorded here.
 | MILE-032 | Cost model COST-*, backtest engine BT-*, golden fixture | done |
 | MILE-032 (completion) | Stop exits use the COST-012 stop-exit sampler end to end; weekend-gap exits counted separately (BT-030) | done |
 | MILE-033 | Risk sizing RISK-*, challenge evaluator CHAL-*, toy strategy, end-to-end | done |
+| MILE-050 (VAL-040/041/044) | Deflated Sharpe: empirical & modelled hurdles, HAC SE, auditable decisions | done; spec's VAL-041 simulation standard verified against Monte Carlo |
+| MILE-050 (VAL-045 core) | Trial ledger: append-only, hash-chained, comparability-split candidate set feeding `s_ledger` | done for data entry & the VAL-040 feed; integration into the research run loop is follow-up work |
 
 **Not yet implemented** (deliberately — they need real data or real decisions):
-- `VAL-040` Deflated Sharpe computation (needs the full trial-count ledger; the
-  plumbing for one-primary-rule exists in `config/objective.example.yaml`).
-- `VAL-050` holdout ledger (requires the experiment registry workflow).
+- `VAL-050` holdout ledger (requires the experiment registry workflow; the
+  append-only hash-chain machinery now exists in `validation/trial_ledger.py`).
+- Ledger integration into the research run loop: every backtest run should
+  append its trial record automatically (VAL-045's data entry is currently a
+  library API, not yet wired into the pipeline CLIs).
+- `VAL-042/043/046`: percentile diagnostics, whole-procedure false-positive
+  simulation, power simulation.
 - Walk-forward selection loop (`VAL-030`) beyond the documented protocol.
 - Swap timing and reset-boundary observation (`CHAL-012`): the canary records
   them as not-observed; read them from deal history at an overnight/reset canary run.
