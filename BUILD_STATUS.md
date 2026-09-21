@@ -139,3 +139,14 @@ full clean pass plus one settle-flagged pass; account flat after each):
 - Capture downtime windows open on the wall clock and close on the feed's
   timestamp; a stale feed stamp books a zero-length window (clamped, never
   negative) rather than the true outage length.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs the identical pre-commit gate on every push
+and PR (windows-latest; Python 3.11 floor + 3.14, the local interpreter):
+it rebuilds the venv at `.venv/Scripts/python.exe` — the path the local hooks
+expect — editable-installs the project with dev+mt5 extras, and runs
+`pre-commit run --all-files`. This closes the hooks-only-where-installed gap:
+checkouts that never ran `pre-commit install` are still gated the same way.
+The setup path was verified locally before commit (clean venv → editable
+install → full green board, MetaTrader5 included).

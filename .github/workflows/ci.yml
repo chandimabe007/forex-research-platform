@@ -1,0 +1,49 @@
+# CI runs the exact pre-commit gate this repo enforces locally, closing the
+# gap that pre-commit only protects checkouts where `pre-commit install` was
+# run. If the gate passes here, it is the same gate a local commit ran.
+#
+# Why a Windows runner: the local pytest/spec hooks invoke
+# ./.venv/Scripts/python.exe (the Windows venv layout, required by
+# CreateProcess), and the MetaTrader5 extra is Windows-only.
+#
+# Matrix rationale: 3.11 is the floor declared in pyproject.toml, 3.14 is the
+# interpreter the project is developed and verified on locally.
+
+name: CI
+
+on: [push, pull_request]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: gate (py${{ matrix.python-version }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # The hooks resolve the project interpreter at ./.venv/Scripts/python.exe
+      # (mirroring the local checkout), so CI builds its venv at that path.
+      - name: Create venv at the path the hooks expect
+        run: python -m venv .venv
+
+      - name: Install project (editable, with dev and mt5 extras)
+        run: .venv/Scripts/python.exe -m pip install -e ".[dev,mt5]"
+
+      - name: Run the pre-commit gate (all files)
+        # --show-diff-on-failure prints exactly which files hygiene hooks
+        # would have fixed, so the log is actionable without a local re-run.
+        # pre-commit itself runs from the project venv, like locally.
+        run: |
+          .venv/Scripts/python.exe -m pip install pre-commit
+          .venv/Scripts/python.exe -m pre_commit run --all-files --show-diff-on-failure
