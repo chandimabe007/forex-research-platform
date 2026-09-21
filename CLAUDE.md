@@ -9,12 +9,13 @@ A measuring instrument for systematic forex ideas: it tests whether an idea surv
 - Every milestone ships: source, tests, configuration, verification instructions, and a written list of known limitations.
 - If the spec is ambiguous or contradicts itself, **stop and ask**. Do not resolve it silently in code.
 - The spec is single-source. Never copy requirement text into code comments or other docs; reference the ID (e.g. `# RISK-013`).
+- Formatting is `ruff format` and linting is `ruff check` (both enforced by the pre-commit hook — a commit fails if files are unformatted). Run `ruff format .` before committing; never hand-format against it.
 - After any edit to `spec/`, run `python spec/tools/check_references.py`. It must pass.
 - Stop conditions in the milestones are real. When one fires, report it rather than working around it.
 
 ## Environment
 
-- Windows, running locally. MetaTrader 5 is installed on this PC with an IC Markets **demo** account.
+- Windows, running locally. MetaTrader 5 is installed on this PC with a **demo** account on server `LHFXSA-Trade` (live-verified 2026-09-21; an IC Markets account was the original plan).
 - Python 3.11+ in a virtual environment at `.venv`. The `MetaTrader5` Python package works only on Windows.
 - Historical tick data (Dukascopy) will be supplied by the user later, into `data/raw/ticks/`. Until then, build and test against small fixtures.
 - Git from the first commit. Pre-registration and audit rules (`VAL-051`, `VAL-071`) depend on commit history.

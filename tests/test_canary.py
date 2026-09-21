@@ -47,10 +47,16 @@ class CanaryAdapter:
         self.positions: list[dict] = []
         self._ticket = 777000
         self.account = AccountState(
-            login=42, server="Demo-Server", currency="USD", account_type="demo",
-            margin_mode=MarginMode.HEDGING, leverage=100,
-            balance=self.balance, equity=self.balance,
-            margin_used=0.0, margin_free=self.balance,
+            login=42,
+            server="Demo-Server",
+            currency="USD",
+            account_type="demo",
+            margin_mode=MarginMode.HEDGING,
+            leverage=100,
+            balance=self.balance,
+            equity=self.balance,
+            margin_used=0.0,
+            margin_free=self.balance,
         )
 
     def connect(self):
@@ -64,10 +70,19 @@ class CanaryAdapter:
     def symbol_info(self, symbol):
         self.calls.append("symbol_info")
         return SymbolInfo(
-            name=symbol, point=0.00001, digits=5, contract_size=100000.0,
-            tick_size=0.00001, tick_value=1.0, volume_min=0.01, volume_step=0.01,
-            volume_max=100.0, stops_level_points=10, freeze_level_points=5,
-            filling_mode=FillingMode.IOC, spread_points=10,
+            name=symbol,
+            point=0.00001,
+            digits=5,
+            contract_size=100000.0,
+            tick_size=0.00001,
+            tick_value=1.0,
+            volume_min=0.01,
+            volume_step=0.01,
+            volume_max=100.0,
+            stops_level_points=10,
+            freeze_level_points=5,
+            filling_mode=FillingMode.IOC,
+            spread_points=10,
         )
 
     def server_time(self):
@@ -92,16 +107,23 @@ class CanaryAdapter:
         if not self.submit_ok:
             return OrderResult(ok=False, retcode=10004, comment="requote")
         self._ticket += 1
-        self.positions.append({
-            "ticket": self._ticket,
-            "symbol": intent.symbol,
-            "sl": intent.stop_loss if self.protection else None,
-            "tp": intent.take_profit if self.protection else None,
-        })
+        self.positions.append(
+            {
+                "ticket": self._ticket,
+                "symbol": intent.symbol,
+                "sl": intent.stop_loss if self.protection else None,
+                "tp": intent.take_profit if self.protection else None,
+            }
+        )
         self._last_intent = intent
         return OrderResult(
-            ok=True, retcode=10009, comment="done", order_ticket=self._ticket,
-            position_ticket=self._ticket, price=1.10005, fill_volume=intent.volume,
+            ok=True,
+            retcode=10009,
+            comment="done",
+            order_ticket=self._ticket,
+            position_ticket=self._ticket,
+            price=1.10005,
+            fill_volume=intent.volume,
         )
 
     def find_by_correlation(self, correlation_id):
@@ -121,17 +143,23 @@ class CanaryAdapter:
 
 
 def _allowlist() -> Allowlist:
-    return Allowlist(entries=(
-        AccountAllowlistEntry(
-            login_hash=login_hash(42), server="Demo-Server",
-            account_type="demo", currency="USD", phase="demo",
-        ),
-    ))
+    return Allowlist(
+        entries=(
+            AccountAllowlistEntry(
+                login_hash=login_hash(42),
+                server="Demo-Server",
+                account_type="demo",
+                currency="USD",
+                phase="demo",
+            ),
+        )
+    )
 
 
 def _run(adapter, tmp_path, allowlist=None):
     outcome, path = run_canary(
-        adapter, symbol="EURUSD",
+        adapter,
+        symbol="EURUSD",
         allowlist=allowlist if allowlist is not None else _allowlist(),
         out_dir=tmp_path,
         now=lambda: dt.datetime(2024, 1, 2, 10, 0, tzinfo=UTC),
@@ -170,6 +198,7 @@ def test_adapter_recovers_position_id_from_correlation_deal():
     import forex_research.execution.mt5_adapter as mod
 
     captured = {}
+
     class FakeDeal:
         """Mimics an MT5 deal object (namedtuple with _asdict)."""
 
@@ -179,12 +208,20 @@ def test_adapter_recovers_position_id_from_correlation_deal():
         ticket = 10821387
 
         def _asdict(self):
-            return {"comment": self.comment, "position_id": self.position_id,
-                    "order": self.order, "ticket": self.ticket}
+            return {
+                "comment": self.comment,
+                "position_id": self.position_id,
+                "order": self.order,
+                "ticket": self.ticket,
+            }
 
     order_result = SimpleNamespace(
-        retcode=10009, comment="Request executed", order=0, position=0,
-        price=1.14824, volume=0.01,
+        retcode=10009,
+        comment="Request executed",
+        order=0,
+        position=0,
+        price=1.14824,
+        volume=0.01,
     )
 
     class FakeMT5:
@@ -208,31 +245,63 @@ def test_adapter_recovers_position_id_from_correlation_deal():
     adapter = mod.MT5Adapter.__new__(mod.MT5Adapter)  # skip __init__/connect
     adapter._mt5 = fake
     from forex_research.execution.adapter import AccountState, MarginMode
+
     adapter._account = AccountState(
-        login=900001, server="LHFXSA-Trade", currency="USD", account_type="demo",
-        margin_mode=MarginMode.HEDGING, leverage=100, balance=10000.0,
-        equity=10000.0, margin_used=0.0, margin_free=10000.0,
+        login=900001,
+        server="LHFXSA-Trade",
+        currency="USD",
+        account_type="demo",
+        margin_mode=MarginMode.HEDGING,
+        leverage=100,
+        balance=10000.0,
+        equity=10000.0,
+        margin_used=0.0,
+        margin_free=10000.0,
     )
     monkey_info = SimpleNamespace(
-        filling_mode=2, trade_exemode=2, trade_stops_level=0,
-        trade_freeze_level=0, volume_min=0.01, volume_step=0.01,
-        volume_max=1000.0, point=0.00001, digits=5,
-        trade_contract_size=100000.0, trade_tick_size=0.00001,
-        trade_tick_value=1.0, spread=6, visible=True, trade_mode=4,
+        filling_mode=2,
+        trade_exemode=2,
+        trade_stops_level=0,
+        trade_freeze_level=0,
+        volume_min=0.01,
+        volume_step=0.01,
+        volume_max=1000.0,
+        point=0.00001,
+        digits=5,
+        trade_contract_size=100000.0,
+        trade_tick_size=0.00001,
+        trade_tick_value=1.0,
+        spread=6,
+        visible=True,
+        trade_mode=4,
     )
     fake.symbol_info = lambda s: monkey_info
     fake.symbol_select = lambda s, flag: True
     # probe_capabilities (pulled in via symbol_info -> _submit_filling) needs
     # the terminal and account snapshots too.
     fake.terminal_info = lambda: SimpleNamespace(
-        name="MT5", build=6204, trade_allowed=True, connected=True)
+        name="MT5", build=6204, trade_allowed=True, connected=True
+    )
     fake.account_info = lambda: SimpleNamespace(
-        login=900001, server="LHFXSA-Trade", currency="USD", trade_mode=0,
-        margin_mode=2, leverage=100, balance=10000.0, equity=10000.0,
-        margin=0.0, margin_free=10000.0)
+        login=900001,
+        server="LHFXSA-Trade",
+        currency="USD",
+        trade_mode=0,
+        margin_mode=2,
+        leverage=100,
+        balance=10000.0,
+        equity=10000.0,
+        margin=0.0,
+        margin_free=10000.0,
+    )
     intent = mod.OrderIntent(
-        symbol="EURUSD", side="buy", order_type="market", volume=0.01,
-        limit_or_stop_price=None, stop_loss=1.14800, take_profit=1.14900,
+        symbol="EURUSD",
+        side="buy",
+        order_type="market",
+        volume=0.01,
+        limit_or_stop_price=None,
+        stop_loss=1.14800,
+        take_profit=1.14900,
         comment="CANARY-test1234",
     )
     result = adapter.submit(intent)

@@ -80,16 +80,24 @@ def test_cli_refuses_cleanly_on_empty_allowlist(tmp_path, monkeypatch):
     from forex_research.config.loader import ConfigError
 
     def empty_allowlist(path):
-        raise ConfigError(f"allowlist invalid: {path}\n  - allowlist is empty; "
-                          "connections must be refused (EXEC-060)")
+        raise ConfigError(
+            f"allowlist invalid: {path}\n  - allowlist is empty; "
+            "connections must be refused (EXEC-060)"
+        )
 
     monkeypatch.setattr(cli_mod, "load_allowlist", empty_allowlist)
 
     out = tmp_path / "probe"
-    rc = cli_mod.main([
-        "--symbols", "EURUSD", "--out", str(out),
-        "--config", "config",
-    ])
+    rc = cli_mod.main(
+        [
+            "--symbols",
+            "EURUSD",
+            "--out",
+            str(out),
+            "--config",
+            "config",
+        ]
+    )
     assert rc == 2
     records = list(out.glob("probe_*.json"))
     assert records, "refusal must persist a record"
@@ -201,12 +209,20 @@ def test_discrepancies_reported_for_documented_drift():
 
 def test_persist_ok_and_failed_outcomes(tmp_path):
     ok_path = persist_probe_record(
-        out_dir=tmp_path, outcome="ok", account_login=42, capabilities=None,
-        discrepancies=[], errors=[],
+        out_dir=tmp_path,
+        outcome="ok",
+        account_login=42,
+        capabilities=None,
+        discrepancies=[],
+        errors=[],
     )
     fail_path = persist_probe_record(
-        out_dir=tmp_path, outcome="failed", account_login=0, capabilities=None,
-        discrepancies=[], errors=["boom"],
+        out_dir=tmp_path,
+        outcome="failed",
+        account_login=0,
+        capabilities=None,
+        discrepancies=[],
+        errors=["boom"],
     )
     assert json.loads(ok_path.read_text())["outcome"] == "ok"
     assert json.loads(fail_path.read_text())["outcome"] == "failed"

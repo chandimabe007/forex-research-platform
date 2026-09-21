@@ -27,8 +27,8 @@ class FeatureParams:
 
     ret_window: int = 1
     atr_window: int = 14
-    vol_regime_window: int = 20        # trailing 20-bar realised ATR
-    vol_regime_lookback: int = 252     # trailing 252-bar distribution
+    vol_regime_window: int = 20  # trailing 20-bar realised ATR
+    vol_regime_lookback: int = 252  # trailing 252-bar distribution
     trend_window: int = 200
     spread_regime_window: int = 60
     spread_elevated_ratio: float = 1.5
@@ -49,9 +49,7 @@ def _mid_frame(bars: pl.DataFrame) -> pl.DataFrame:
 
 def compute_return(df: pl.DataFrame, *, params: FeatureParams) -> pl.DataFrame:
     """ret_1: trailing 1-bar return of bid_close."""
-    return df.with_columns(
-        pl.col("bid_close").pct_change(params.ret_window).alias("ret_1")
-    )
+    return df.with_columns(pl.col("bid_close").pct_change(params.ret_window).alias("ret_1"))
 
 
 def compute_atr(df: pl.DataFrame, *, params: FeatureParams) -> pl.DataFrame:
@@ -60,11 +58,11 @@ def compute_atr(df: pl.DataFrame, *, params: FeatureParams) -> pl.DataFrame:
         pl.col("bid_high") - pl.col("bid_low"),
         (pl.col("bid_close") - pl.col("bid_close").shift(1)).abs(),
     )
-    return df.with_columns(
-        true_range.alias("_tr")
-    ).with_columns(
-        pl.col("_tr").rolling_mean(window_size=params.atr_window).alias("atr")
-    ).drop("_tr")
+    return (
+        df.with_columns(true_range.alias("_tr"))
+        .with_columns(pl.col("_tr").rolling_mean(window_size=params.atr_window).alias("atr"))
+        .drop("_tr")
+    )
 
 
 def compute_spread_stats(df: pl.DataFrame, *, params: FeatureParams) -> pl.DataFrame:
@@ -73,9 +71,7 @@ def compute_spread_stats(df: pl.DataFrame, *, params: FeatureParams) -> pl.DataF
         pl.col("spread")
         .rolling_median(window_size=params.spread_regime_window)
         .alias("spread_median")
-    ).with_columns(
-        (pl.col("spread") / pl.col("spread_median")).alias("spread_ratio")
-    )
+    ).with_columns((pl.col("spread") / pl.col("spread_median")).alias("spread_ratio"))
 
 
 def compute_vol_regime(df: pl.DataFrame, *, params: FeatureParams) -> pl.DataFrame:
@@ -90,7 +86,9 @@ def compute_vol_regime(df: pl.DataFrame, *, params: FeatureParams) -> pl.DataFra
     q60 = pl.col("_atr20").rolling_quantile(0.6, window_size=params.vol_regime_lookback)
     q80 = pl.col("_atr20").rolling_quantile(0.8, window_size=params.vol_regime_lookback)
     return (
-        df.with_columns([q20.alias("_q20"), q40.alias("_q40"), q60.alias("_q60"), q80.alias("_q80")])
+        df.with_columns(
+            [q20.alias("_q20"), q40.alias("_q40"), q60.alias("_q60"), q80.alias("_q80")]
+        )
         .with_columns(
             pl.when(pl.col("_atr20").is_null() | pl.col("_q80").is_null())
             .then(None)
@@ -172,9 +170,7 @@ def compute_features(bars: pl.DataFrame, *, params: FeatureParams | None = None)
     return df.select(["available_at"] + FEATURE_COLUMNS)
 
 
-def compute_session_regime(
-    bars: pl.DataFrame, *, resolver
-) -> pl.DataFrame:
+def compute_session_regime(bars: pl.DataFrame, *, resolver) -> pl.DataFrame:
     """Session regime from DST-aware exchange-local windows (FEAT-010,
     COST-011). Pure given the resolver (an immutable value)."""
     buckets = [

@@ -45,10 +45,6 @@ class FeeSchedule:
         operator's calendar rather than assumed.
         """
         is_triple = night.weekday() in self.triple_swap_weekdays and night not in self.holidays
-        rate = (
-            self.swap_long_per_lot_per_day
-            if side == "buy"
-            else self.swap_short_per_lot_per_day
-        )
+        rate = self.swap_long_per_lot_per_day if side == "buy" else self.swap_short_per_lot_per_day
         multiplier = Decimal(3) if is_triple else Decimal(1)
         return Decimal(volume) * rate * multiplier

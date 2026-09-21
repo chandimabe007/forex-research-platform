@@ -90,7 +90,11 @@ def require_objective(path: Path) -> ObjectiveConfig:
 
 def _parse_rule(name: str, raw: dict[str, Any]) -> AtomicRule:
     value = raw.get("value")
-    typed = TypedValue(kind=str(value.get("kind")), value=value.get("value")) if isinstance(value, dict) else None
+    typed = (
+        TypedValue(kind=str(value.get("kind")), value=value.get("value"))
+        if isinstance(value, dict)
+        else None
+    )
     prov_raw = raw.get("provenance", {}) or {}
     provenance = Provenance(
         source_url=str(prov_raw.get("source_url", "") or ""),
@@ -105,8 +109,12 @@ def _parse_rule(name: str, raw: dict[str, Any]) -> AtomicRule:
         floor_basis=FloorBasis(raw["floor_basis"]) if raw.get("floor_basis") else None,
         monitored_value=raw.get("monitored_value"),
         ratchet_on_equity=raw.get("ratchet_on_equity"),
-        breach_semantics=BreachSemantics(raw["breach_semantics"]) if raw.get("breach_semantics") else None,
-        breach_severity=BreachSeverity(raw["breach_severity"]) if raw.get("breach_severity") else None,
+        breach_semantics=BreachSemantics(raw["breach_semantics"])
+        if raw.get("breach_semantics")
+        else None,
+        breach_severity=BreachSeverity(raw["breach_severity"])
+        if raw.get("breach_severity")
+        else None,
         reset_local_time=raw.get("reset_local_time"),
         provenance=provenance,
     )
@@ -163,7 +171,9 @@ class Allowlist:
 
     entries: tuple[AccountAllowlistEntry, ...]
 
-    def contains(self, *, login_hash: str, server: str, account_type: str, currency: str, phase: str) -> bool:
+    def contains(
+        self, *, login_hash: str, server: str, account_type: str, currency: str, phase: str
+    ) -> bool:
         for entry in self.entries:
             if (
                 entry.login_hash == login_hash
@@ -226,10 +236,7 @@ class FeeScheduleSource:
                 "fees must be observed on the server (canary) before use; "
                 "a documented-only schedule is not evidence (COST-016)"
             )
-        if (
-            self.swap_long_per_lot_per_day is None
-            or self.swap_short_per_lot_per_day is None
-        ):
+        if self.swap_long_per_lot_per_day is None or self.swap_short_per_lot_per_day is None:
             if self.swaps_observed:
                 errors.append("swaps_observed is true but swap values are missing")
             else:
@@ -245,13 +252,13 @@ class FeeScheduleSource:
         unless explicitly acknowledged for plumbing demos — in which case swap
         rates enter as ZERO and the resulting trades must never hold overnight."""
         errors = [
-            e for e in self.validate()
+            e
+            for e in self.validate()
             if not (allow_unobserved_swaps and "swap rates not observed" in e)
         ]
         if errors:
             raise ConfigError(
-                f"fee schedule '{self.server}' invalid:\n  - "
-                + "\n  - ".join(errors)
+                f"fee schedule '{self.server}' invalid:\n  - " + "\n  - ".join(errors)
             )
         if self.swap_long_per_lot_per_day is None or self.swap_short_per_lot_per_day is None:
             if not allow_unobserved_swaps:  # defensive; validate() already covers it
@@ -259,7 +266,8 @@ class FeeScheduleSource:
             swap_long, swap_short = Decimal(0), Decimal(0)
         else:
             swap_long, swap_short = (
-                self.swap_long_per_lot_per_day, self.swap_short_per_lot_per_day
+                self.swap_long_per_lot_per_day,
+                self.swap_short_per_lot_per_day,
             )
         return FeeSchedule(
             symbol=self.server,
@@ -272,7 +280,9 @@ class FeeScheduleSource:
         )
 
 
-def load_fee_schedules(path: Path, *, allow_unobserved_swaps: bool = False) -> dict[str, FeeScheduleSource]:
+def load_fee_schedules(
+    path: Path, *, allow_unobserved_swaps: bool = False
+) -> dict[str, FeeScheduleSource]:
     """Load fee schedules. By default a schedule with unobserved swap rates is
     a validation ERROR (COST-016: never assume fees). ``allow_unobserved_swaps``
     exists solely for plumbing demos that hold no positions overnight."""
@@ -303,16 +313,12 @@ def load_fee_schedules(path: Path, *, allow_unobserved_swaps: bool = False) -> d
             ),
         )
         if allow_unobserved_swaps:
-            errors = [
-                e for e in source.validate()
-                if "swap rates not observed" not in e
-            ]
+            errors = [e for e in source.validate() if "swap rates not observed" not in e]
         else:
             errors = source.validate()
         if errors:
             raise ConfigError(
-                f"fee schedule '{server}' invalid: {path}\n  - "
-                + "\n  - ".join(errors)
+                f"fee schedule '{server}' invalid: {path}\n  - " + "\n  - ".join(errors)
             )
         out[str(server)] = source
     if not out:
@@ -327,7 +333,6 @@ def load_fee_schedule_for_server(
     schedules = load_fee_schedules(path, allow_unobserved_swaps=allow_unobserved_swaps)
     if server not in schedules:
         raise ConfigError(
-            f"no fee schedule for server '{server}' in {path}; "
-            f"known: {sorted(schedules)}"
+            f"no fee schedule for server '{server}' in {path}; known: {sorted(schedules)}"
         )
     return schedules[server].to_fee_schedule(allow_unobserved_swaps=allow_unobserved_swaps)

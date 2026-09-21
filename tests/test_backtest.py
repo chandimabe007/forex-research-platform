@@ -20,12 +20,19 @@ REPO = Path(__file__).resolve().parents[1]
 
 def _spec() -> InstrumentSpec:
     return InstrumentSpec(
-        symbol="EURUSD", venue_symbol="EURUSD",
-        point_size=Decimal("0.00001"), pip_size=Decimal("0.0001"),
-        contract_size=Decimal("100000"), tick_size=Decimal("0.00001"),
-        tick_value=Decimal("1.0"), quote_currency="USD",
-        volume_min=Decimal("0.01"), volume_step=Decimal("0.01"),
-        volume_max=Decimal("100.0"), stops_level_points=0, freeze_level_points=0,
+        symbol="EURUSD",
+        venue_symbol="EURUSD",
+        point_size=Decimal("0.00001"),
+        pip_size=Decimal("0.0001"),
+        contract_size=Decimal("100000"),
+        tick_size=Decimal("0.00001"),
+        tick_value=Decimal("1.0"),
+        quote_currency="USD",
+        volume_min=Decimal("0.01"),
+        volume_step=Decimal("0.01"),
+        volume_max=Decimal("100.0"),
+        stops_level_points=0,
+        freeze_level_points=0,
     )
 
 
@@ -87,11 +94,14 @@ def _t(minute: int, second: int = 0) -> dt.datetime:
 
 def _run(rows, strategy, *, volume_rounded_off=False):
     bt = TickBacktester(
-        spec=_spec(), fees=_fees(), latency=dt.timedelta(0),
+        spec=_spec(),
+        fees=_fees(),
+        latency=dt.timedelta(0),
         value_per_point_per_lot=Decimal("10.0"),  # $10 per pip per lot on EURUSD
     )
-    return bt.run(symbol="EURUSD", ticks=_ticks(rows), features=_empty_features(),
-                  strategy=strategy)
+    return bt.run(
+        symbol="EURUSD", ticks=_ticks(rows), features=_empty_features(), strategy=strategy
+    )
 
 
 def test_hand_worked_long_tp_winner():
@@ -103,8 +113,11 @@ def test_hand_worked_long_tp_winner():
         (_t(1), "1.10200", "1.10205"),  # bid reaches TP -> exit at level
     ]
     intent = OrderIntent(
-        side=Side.BUY, order_type=OrderType.MARKET, limit_or_stop_price=None,
-        stop_loss=Decimal("1.09900"), take_profit=Decimal("1.10200"),
+        side=Side.BUY,
+        order_type=OrderType.MARKET,
+        limit_or_stop_price=None,
+        stop_loss=Decimal("1.09900"),
+        take_profit=Decimal("1.10200"),
         volume=Decimal("0.10"),
     )
     result = _run(rows, ScriptedStrategy({0: intent}))
@@ -123,8 +136,11 @@ def test_hand_worked_long_stop_losser():
         (_t(1), "1.09900", "1.09905"),
     ]
     intent = OrderIntent(
-        side=Side.BUY, order_type=OrderType.MARKET, limit_or_stop_price=None,
-        stop_loss=Decimal("1.09900"), take_profit=Decimal("1.10200"),
+        side=Side.BUY,
+        order_type=OrderType.MARKET,
+        limit_or_stop_price=None,
+        stop_loss=Decimal("1.09900"),
+        take_profit=Decimal("1.10200"),
         volume=Decimal("0.10"),
     )
     result = _run(rows, ScriptedStrategy({0: intent}))
@@ -143,8 +159,11 @@ def test_bt012_short_stop_fires_on_ask_spike_the_bid_never_reaches():
         (_t(1), "1.10050", "1.10105"),  # ask spike: stop 1.10100 breached
     ]
     intent = OrderIntent(
-        side=Side.SELL, order_type=OrderType.MARKET, limit_or_stop_price=None,
-        stop_loss=Decimal("1.10100"), take_profit=Decimal("1.09800"),
+        side=Side.SELL,
+        order_type=OrderType.MARKET,
+        limit_or_stop_price=None,
+        stop_loss=Decimal("1.10100"),
+        take_profit=Decimal("1.09800"),
         volume=Decimal("0.10"),
     )
     result = _run(rows, ScriptedStrategy({0: intent}))
@@ -163,8 +182,11 @@ def test_bt030_volume_rounds_down_and_risk_recomputes():
         (_t(1), "1.10200", "1.10205"),
     ]
     intent = OrderIntent(
-        side=Side.BUY, order_type=OrderType.MARKET, limit_or_stop_price=None,
-        stop_loss=Decimal("1.09900"), take_profit=Decimal("1.10200"),
+        side=Side.BUY,
+        order_type=OrderType.MARKET,
+        limit_or_stop_price=None,
+        stop_loss=Decimal("1.09900"),
+        take_profit=Decimal("1.10200"),
         volume=Decimal("0.237"),
     )
     result = _run(rows, ScriptedStrategy({0: intent}))
@@ -179,8 +201,12 @@ def test_bt030_volume_rounds_down_and_risk_recomputes():
 def test_bt030_rejects_rounded_volume_below_min():
     rows = [(_t(0), "1.09995", "1.10000")]
     intent = OrderIntent(
-        side=Side.BUY, order_type=OrderType.MARKET, limit_or_stop_price=None,
-        stop_loss=Decimal("1.09900"), take_profit=None, volume=Decimal("0.005"),
+        side=Side.BUY,
+        order_type=OrderType.MARKET,
+        limit_or_stop_price=None,
+        stop_loss=Decimal("1.09900"),
+        take_profit=None,
+        volume=Decimal("0.005"),
     )
     result = _run(rows, ScriptedStrategy({0: intent}))
     assert result.trades == []
@@ -196,8 +222,12 @@ def test_pending_limit_fills_on_trigger_before_exits_bt011():
         (_t(2), "1.09840", "1.09845"),  # bid <= SL 1.09850 -> stop exit
     ]
     intent = OrderIntent(
-        side=Side.BUY, order_type=OrderType.LIMIT, limit_or_stop_price=Decimal("1.09950"),
-        stop_loss=Decimal("1.09850"), take_profit=None, volume=Decimal("0.10"),
+        side=Side.BUY,
+        order_type=OrderType.LIMIT,
+        limit_or_stop_price=Decimal("1.09950"),
+        stop_loss=Decimal("1.09850"),
+        take_profit=None,
+        volume=Decimal("0.10"),
     )
     result = _run(rows, ScriptedStrategy({0: intent}))
     assert result.rejected_orders == []
@@ -216,8 +246,11 @@ def test_bt021_ambiguity_budget_instrumented():
         (_t(1), "1.09800", "1.10205"),
     ]
     intent = OrderIntent(
-        side=Side.BUY, order_type=OrderType.MARKET, limit_or_stop_price=None,
-        stop_loss=Decimal("1.09900"), take_profit=Decimal("1.10200"),
+        side=Side.BUY,
+        order_type=OrderType.MARKET,
+        limit_or_stop_price=None,
+        stop_loss=Decimal("1.09900"),
+        take_profit=Decimal("1.10200"),
         volume=Decimal("0.10"),
     )
     result = _run(rows, ScriptedStrategy({0: intent}))
@@ -245,9 +278,14 @@ def test_gtd_pending_order_expired_is_abandoned_not_left_resting():
         (_t(2), "1.09940", "1.09945"),  # > expiry: dead, must NOT fill
     ]
     intent = OrderIntent(
-        side=Side.BUY, order_type=OrderType.LIMIT, limit_or_stop_price=Decimal("1.09950"),
-        stop_loss=Decimal("1.09850"), take_profit=None, volume=Decimal("0.10"),
-        time_in_force=TIF.GTD, expiry=_t(1),
+        side=Side.BUY,
+        order_type=OrderType.LIMIT,
+        limit_or_stop_price=Decimal("1.09950"),
+        stop_loss=Decimal("1.09850"),
+        take_profit=None,
+        volume=Decimal("0.10"),
+        time_in_force=TIF.GTD,
+        expiry=_t(1),
     )
     result = _run(rows, ScriptedStrategy({0: intent}))
     assert result.trades == []
@@ -269,7 +307,9 @@ def test_stop_exits_use_stop_exit_spread_sampler_end_to_end():
         return Decimal("2")  # 2 pips adverse
 
     bt = TickBacktester(
-        spec=_spec(), fees=_fees(), latency=dt.timedelta(0),
+        spec=_spec(),
+        fees=_fees(),
+        latency=dt.timedelta(0),
         value_per_point_per_lot=Decimal("10.0"),
         slippage_pips_sampler=entry_sampler,
         stop_exit_spread_sampler=stop_exit_sampler,
@@ -279,11 +319,19 @@ def test_stop_exits_use_stop_exit_spread_sampler_end_to_end():
         (_t(1), "1.09900", "1.09905"),  # bid touches the stop -> stopped out
     ]
     intent = OrderIntent(
-        side=Side.BUY, order_type=OrderType.MARKET, limit_or_stop_price=None,
-        stop_loss=Decimal("1.09900"), take_profit=None, volume=Decimal("0.10"),
+        side=Side.BUY,
+        order_type=OrderType.MARKET,
+        limit_or_stop_price=None,
+        stop_loss=Decimal("1.09900"),
+        take_profit=None,
+        volume=Decimal("0.10"),
     )
-    result = bt.run(symbol="EURUSD", ticks=_ticks(rows),
-                    features=_empty_features(), strategy=ScriptedStrategy({0: intent}))
+    result = bt.run(
+        symbol="EURUSD",
+        ticks=_ticks(rows),
+        features=_empty_features(),
+        strategy=ScriptedStrategy({0: intent}),
+    )
     assert len(result.trades) == 1
     trade = result.trades[0]
     assert trade.exit_reason == "closed_sl"
@@ -303,11 +351,15 @@ def test_weekend_gap_exit_counted_separately():
     # BT-030: an exit resolved at the first tick after the market's weekend
     # gap is counted in weekend_gap_exits — the gap carried the price away
     # from the stop and that tail must be visible.
-    thu = dt.datetime(2024, 1, 4, 10, 0, tzinfo=UTC)   # Thursday
-    mon = dt.datetime(2024, 1, 8, 9, 0, tzinfo=UTC)    # Monday after the gap
+    thu = dt.datetime(2024, 1, 4, 10, 0, tzinfo=UTC)  # Thursday
+    mon = dt.datetime(2024, 1, 8, 9, 0, tzinfo=UTC)  # Monday after the gap
     intent = OrderIntent(
-        side=Side.BUY, order_type=OrderType.MARKET, limit_or_stop_price=None,
-        stop_loss=Decimal("1.09900"), take_profit=None, volume=Decimal("0.10"),
+        side=Side.BUY,
+        order_type=OrderType.MARKET,
+        limit_or_stop_price=None,
+        stop_loss=Decimal("1.09900"),
+        take_profit=None,
+        volume=Decimal("0.10"),
     )
     across = [
         (thu, "1.09995", "1.10000"),
@@ -335,8 +387,11 @@ def test_bt040_golden_path_regression(tmp_path):
         (_t(2), "1.10000", "1.10005"),
     ]
     intent = OrderIntent(
-        side=Side.BUY, order_type=OrderType.MARKET, limit_or_stop_price=None,
-        stop_loss=Decimal("1.09900"), take_profit=Decimal("1.10200"),
+        side=Side.BUY,
+        order_type=OrderType.MARKET,
+        limit_or_stop_price=None,
+        stop_loss=Decimal("1.09900"),
+        take_profit=Decimal("1.10200"),
         volume=Decimal("0.10"),
     )
     result = _run(rows, ScriptedStrategy({0: intent}))

@@ -189,9 +189,7 @@ class MT5Adapter:
         for order in mt5.orders_get() or []:
             if correlation_id in (order.comment or ""):
                 return dict(order._asdict())
-        for deal in mt5.history_deals_get(
-            0, datetime.now(UTC).timestamp() + 86400
-        ) or []:
+        for deal in mt5.history_deals_get(0, datetime.now(UTC).timestamp() + 86400) or []:
             if correlation_id in (deal.comment or ""):
                 return dict(deal._asdict())
         return None
@@ -226,9 +224,7 @@ class MT5Adapter:
         mt5 = self._require()
         action = self._order_action(intent)
         price = self._reference_price(intent)
-        margin = mt5.order_calc_margin(
-            action, intent.symbol, intent.volume, price
-        )
+        margin = mt5.order_calc_margin(action, intent.symbol, intent.volume, price)
         if margin is None:
             raise AdapterError(f"order_calc_margin returned None for {intent.symbol}")
         return float(margin)
@@ -237,9 +233,7 @@ class MT5Adapter:
         mt5 = self._require()
         action = self._order_action(intent)
         price = self._reference_price(intent)
-        profit = mt5.order_calc_profit(
-            action, intent.symbol, intent.volume, price, close_price
-        )
+        profit = mt5.order_calc_profit(action, intent.symbol, intent.volume, price, close_price)
         if profit is None:
             raise AdapterError(f"order_calc_profit returned None for {intent.symbol}")
         return float(profit)
@@ -274,7 +268,9 @@ class MT5Adapter:
         }
         if intent.order_type == "limit":
             request["type"] = (
-                mt5pkg.ORDER_TYPE_BUY_LIMIT if intent.side == "buy" else mt5pkg.ORDER_TYPE_SELL_LIMIT
+                mt5pkg.ORDER_TYPE_BUY_LIMIT
+                if intent.side == "buy"
+                else mt5pkg.ORDER_TYPE_SELL_LIMIT
             )
             request["price"] = float(intent.limit_or_stop_price)
         elif intent.order_type == "stop":
@@ -291,9 +287,7 @@ class MT5Adapter:
             raise AdapterError(f"order_send returned None: {mt5.last_error()}")
         ok = int(result.retcode) in OK_RETCODES
         order_ticket = int(result.order) if result.order else None
-        position_ticket = (
-            int(result.position) if getattr(result, "position", 0) else None
-        )
+        position_ticket = int(result.position) if getattr(result, "position", 0) else None
         # Some servers return TRADE_RETCODE_DONE with empty order/position
         # ids (observed live: "Request executed", position=0). The order DID
         # execute; recover the position id from the deal history via the
@@ -303,7 +297,8 @@ class MT5Adapter:
                 found = self.find_by_correlation(intent.comment)
                 if found:
                     position_ticket = (
-                        int(found["position_id"]) if found.get("position_id")
+                        int(found["position_id"])
+                        if found.get("position_id")
                         else (int(found["ticket"]) if found.get("ticket") else None)
                     )
             except Exception:  # noqa: BLE001 - a failed lookup must never mask a fill
@@ -347,9 +342,7 @@ class MT5Adapter:
         mt5 = self._require()
         import MetaTrader5 as mt5pkg
 
-        result = mt5.order_send(
-            {"action": mt5pkg.TRADE_ACTION_REMOVE, "order": ticket}
-        )
+        result = mt5.order_send({"action": mt5pkg.TRADE_ACTION_REMOVE, "order": ticket})
         if result is None:
             raise AdapterError(f"order_send returned None: {mt5.last_error()}")
         ok = int(result.retcode) in OK_RETCODES

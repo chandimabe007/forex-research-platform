@@ -24,7 +24,9 @@ from forex_research.data.manifest import write_manifest
 UTC = dt.UTC
 
 
-def _ticks(n: int = 240, *, start: dt.datetime | None = None, gap_at: int | None = None) -> pl.DataFrame:
+def _ticks(
+    n: int = 240, *, start: dt.datetime | None = None, gap_at: int | None = None
+) -> pl.DataFrame:
     import numpy as np
 
     start = start or dt.datetime(2024, 1, 2, tzinfo=UTC)
@@ -58,9 +60,22 @@ def test_resample_produces_both_sides_and_available_at():
     ticks = _ticks(240)
     bars = resample_ticks(ticks, timeframe="1m", continuity_threshold_ms=5000)
     assert bars.columns == [
-        "ts_open", "available_at", "bid_open", "bid_high", "bid_low", "bid_close",
-        "ask_open", "ask_high", "ask_low", "ask_close", "volume", "tick_count",
-        "max_quote_gap_ms", "coverage_ok", "known_outage", "tick_derived",
+        "ts_open",
+        "available_at",
+        "bid_open",
+        "bid_high",
+        "bid_low",
+        "bid_close",
+        "ask_open",
+        "ask_high",
+        "ask_low",
+        "ask_close",
+        "volume",
+        "tick_count",
+        "max_quote_gap_ms",
+        "coverage_ok",
+        "known_outage",
+        "tick_derived",
     ]
     first = bars.row(0, named=True)
     assert first["available_at"] == first["ts_open"] + dt.timedelta(minutes=1)
@@ -84,9 +99,7 @@ def test_outage_overlap_marks_known_outage():
 def test_validation_rejects_crossed_and_nonpositive():
     n = 10
     start = dt.datetime(2024, 1, 2, tzinfo=UTC)
-    ts = pl.datetime_range(
-        start, start + dt.timedelta(seconds=n - 1), interval="1s", eager=True
-    )
+    ts = pl.datetime_range(start, start + dt.timedelta(seconds=n - 1), interval="1s", eager=True)
     good = pl.DataFrame(
         {
             "ts": ts,
@@ -111,9 +124,7 @@ def test_validation_rejects_crossed_and_nonpositive():
 def _bars_frame(**overrides):
     n = 5
     start = dt.datetime(2024, 1, 2, tzinfo=UTC)
-    ts = pl.datetime_range(
-        start, start + dt.timedelta(hours=n - 1), interval="1h", eager=True
-    )
+    ts = pl.datetime_range(start, start + dt.timedelta(hours=n - 1), interval="1h", eager=True)
     data = {
         "ts_open": ts,
         "available_at": ts + dt.timedelta(hours=1),

@@ -38,11 +38,16 @@ def synthetic_ticks(n: int = 5400) -> pl.DataFrame:
     ts = pl.datetime_range(START, START + dt.timedelta(seconds=n - 1), interval="1s", eager=True)
     mid = 1.10 + np.cumsum(rng.normal(2e-6, 1.2e-4, n))
     half = 0.0001
-    return pl.DataFrame({
-        "ts": ts, "bid": mid - half, "ask": mid + half,
-        "bid_volume": [1.0] * n, "ask_volume": [1.0] * n,
-        "sequence_gap": [False] * n,
-    })
+    return pl.DataFrame(
+        {
+            "ts": ts,
+            "bid": mid - half,
+            "ask": mid + half,
+            "bid_volume": [1.0] * n,
+            "ask_volume": [1.0] * n,
+            "sequence_gap": [False] * n,
+        }
+    )
 
 
 def main() -> int:
@@ -56,25 +61,37 @@ def main() -> int:
         params=FeatureParams(trend_window=20, vol_regime_lookback=60),
     )
     features = engine.compute(bars)
-    print(f"features: {features.height} rows; columns: {[c for c in features.columns if c != 'available_at']}")
+    print(
+        f"features: {features.height} rows; columns: {[c for c in features.columns if c != 'available_at']}"
+    )
 
     toy = PullbackToy(stop_pips=Decimal("2"), target_pips=Decimal("4"), volume=Decimal("0.10"))
     # Fees come from config with canary evidence attached (COST-016); the
     # demo holds nothing overnight, so unobserved swaps are acknowledged.
     fees = load_fee_schedule_for_server(
         Path(__file__).resolve().parents[1] / "config" / "fees.yaml",
-        "LHFXSA-Trade", allow_unobserved_swaps=True,
+        "LHFXSA-Trade",
+        allow_unobserved_swaps=True,
     )
-    print(f"fees: {fees.symbol} commission {fees.commission_per_lot_round_trip}/lot "
-          f"(observed {fees.retrieved_at})")
+    print(
+        f"fees: {fees.symbol} commission {fees.commission_per_lot_round_trip}/lot "
+        f"(observed {fees.retrieved_at})"
+    )
     bt = TickBacktester(
         spec=InstrumentSpec(
-            symbol="EURUSD", venue_symbol="EURUSD",
-            point_size=Decimal("0.00001"), pip_size=Decimal("0.0001"),
-            contract_size=Decimal("100000"), tick_size=Decimal("0.00001"),
-            tick_value=Decimal("1.0"), quote_currency="USD",
-            volume_min=Decimal("0.01"), volume_step=Decimal("0.01"),
-            volume_max=Decimal("100.0"), stops_level_points=0, freeze_level_points=0,
+            symbol="EURUSD",
+            venue_symbol="EURUSD",
+            point_size=Decimal("0.00001"),
+            pip_size=Decimal("0.0001"),
+            contract_size=Decimal("100000"),
+            tick_size=Decimal("0.00001"),
+            tick_value=Decimal("1.0"),
+            quote_currency="USD",
+            volume_min=Decimal("0.01"),
+            volume_step=Decimal("0.01"),
+            volume_max=Decimal("100.0"),
+            stops_level_points=0,
+            freeze_level_points=0,
         ),
         fees=fees,
         latency=dt.timedelta(0),

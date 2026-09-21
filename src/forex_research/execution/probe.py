@@ -77,9 +77,7 @@ def compare_against_expected(
                 continue
             got = getattr(observed, field if field != "point_size" else "point")
             if abs(float(want) - float(got)) > 1e-12:
-                discrepancies.append(
-                    f"{symbol}.{field}: documented {want} vs observed {got}"
-                )
+                discrepancies.append(f"{symbol}.{field}: documented {want} vs observed {got}")
     return discrepancies
 
 

@@ -34,8 +34,8 @@ class FillReport:
     fill_price: Decimal
     arrival_quote: Decimal
     quote_at_decision: Decimal
-    latency_move: Decimal   # reported, never sampled (COST-015)
-    residual: Decimal       # the only sampled term
+    latency_move: Decimal  # reported, never sampled (COST-015)
+    residual: Decimal  # the only sampled term
     side: str
     filled_at: datetime
     rule: str  # which BT-010 fill rule produced this

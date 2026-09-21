@@ -101,28 +101,34 @@ def run_truncation_test(
 # Honest pipeline and leaking fixtures (VAL-061)
 # ---------------------------------------------------------------------------
 
+
 def honest_pipeline(inputs: dict[str, pl.DataFrame]) -> pl.DataFrame:
     from .library import FeatureParams, compute_features
 
-    return compute_features(inputs["bars"], params=FeatureParams(trend_window=20, vol_regime_lookback=60))
+    return compute_features(
+        inputs["bars"], params=FeatureParams(trend_window=20, vol_regime_lookback=60)
+    )
 
 
 def _leak_centred_window(inputs: dict[str, pl.DataFrame]) -> pl.DataFrame:
-    return inputs["bars"].with_columns(
-        pl.col("bid_close").rolling_mean(window_size=5, center=True).alias("leak")
-    ).select(["available_at", "leak"])
+    return (
+        inputs["bars"]
+        .with_columns(pl.col("bid_close").rolling_mean(window_size=5, center=True).alias("leak"))
+        .select(["available_at", "leak"])
+    )
 
 
 def _leak_full_series_rank(inputs: dict[str, pl.DataFrame]) -> pl.DataFrame:
-    return inputs["bars"].with_columns(
-        pl.col("bid_close").rank().alias("leak")
-    ).select(["available_at", "leak"])
+    return (
+        inputs["bars"]
+        .with_columns(pl.col("bid_close").rank().alias("leak"))
+        .select(["available_at", "leak"])
+    )
 
 
 def _h1_inputs(bars: pl.DataFrame) -> dict[str, pl.DataFrame]:
-    h1 = (
-        bars.group_by_dynamic("ts_open", every="1h", closed="left", label="left")
-        .agg([pl.col("bid_close").last().alias("h1_close")])
+    h1 = bars.group_by_dynamic("ts_open", every="1h", closed="left", label="left").agg(
+        [pl.col("bid_close").last().alias("h1_close")]
     )
     h1 = h1.with_columns((pl.col("ts_open") + dt.timedelta(hours=1)).alias("available_at"))
     return {"bars": bars, "h1": h1}
@@ -131,9 +137,11 @@ def _h1_inputs(bars: pl.DataFrame) -> dict[str, pl.DataFrame]:
 def _leak_higher_tf_join_on_ts_open(inputs: dict[str, pl.DataFrame]) -> pl.DataFrame:
     # The leak: join the H1 close on bar-open time instead of available_at —
     # rows inside the hour receive a close that does not exist yet (FEAT-001).
-    return inputs["bars"].join(
-        inputs["h1"].select(["ts_open", "h1_close"]), on="ts_open", how="left"
-    ).select(["available_at", "h1_close"])
+    return (
+        inputs["bars"]
+        .join(inputs["h1"].select(["ts_open", "h1_close"]), on="ts_open", how="left")
+        .select(["available_at", "h1_close"])
+    )
 
 
 def _honest_higher_tf_join(inputs: dict[str, pl.DataFrame]) -> pl.DataFrame:

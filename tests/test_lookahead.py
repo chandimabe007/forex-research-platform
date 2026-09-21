@@ -40,8 +40,8 @@ def _cutoffs(n_bars: int = 720):
     cutoffs.append(dt.datetime(2024, 10, 27, 1, 0, tzinfo=UTC))
     cutoffs.append(dt.datetime(2024, 10, 27, 2, 0, tzinfo=UTC))
     # Weekend boundary: Friday close, Sunday open.
-    cutoffs.append(dt.datetime(2024, 1, 5, 21, 0, tzinfo=UTC))   # Friday
-    cutoffs.append(dt.datetime(2024, 1, 7, 21, 5, tzinfo=UTC))   # Sunday open
+    cutoffs.append(dt.datetime(2024, 1, 5, 21, 0, tzinfo=UTC))  # Friday
+    cutoffs.append(dt.datetime(2024, 1, 7, 21, 5, tzinfo=UTC))  # Sunday open
     return cutoffs
 
 
@@ -69,8 +69,7 @@ def test_val061_each_leaking_fixture_fails_the_truncation_test():
         # between scheduled and release for the calendar fixture).
         cutoff = START + dt.timedelta(minutes=exposing_minute, seconds=30)
         assert not run_truncation_test(pipeline, inputs, cutoff, warmup=1), (
-            f"leaking fixture '{name}' PASSED the truncation test — the test was "
-            "weakened (VAL-061)"
+            f"leaking fixture '{name}' PASSED the truncation test — the test was weakened (VAL-061)"
         )
 
 

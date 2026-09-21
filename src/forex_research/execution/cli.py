@@ -40,7 +40,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--symbols", nargs="*", default=DEFAULT_SYMBOLS)
     parser.add_argument("--out", type=Path, default=Path("data/probe"))
     parser.add_argument(
-        "--config", type=Path, default=Path("config"),
+        "--config",
+        type=Path,
+        default=Path("config"),
         help="directory containing accounts.yaml and instruments.yaml",
     )
     args = parser.parse_args(argv)

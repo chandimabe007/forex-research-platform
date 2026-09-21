@@ -246,7 +246,9 @@ class AccountAllowlistEntry:
     def validate(self) -> list[str]:
         errors: list[str] = []
         if not self.login_hash or len(self.login_hash) != 64:
-            errors.append("login_hash must be a sha256 hex digest; the raw login never enters configuration (SEC-001)")
+            errors.append(
+                "login_hash must be a sha256 hex digest; the raw login never enters configuration (SEC-001)"
+            )
         if self.account_type not in {"demo", "evaluation", "funded"}:
             errors.append("account_type must be demo | evaluation | funded")
         if not self.server:

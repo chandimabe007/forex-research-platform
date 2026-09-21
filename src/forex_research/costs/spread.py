@@ -83,11 +83,13 @@ class SpreadModel:
             entry_spread_pips
         )
         if stop_exit_spread_pips is not None:
-            self.stop_exit_cells.setdefault(
-                key, SpreadCell([], "stop_exit")
-            ).samples_pips.append(stop_exit_spread_pips)
+            self.stop_exit_cells.setdefault(key, SpreadCell([], "stop_exit")).samples_pips.append(
+                stop_exit_spread_pips
+            )
 
-    def _lookup(self, cells: dict[SpreadCellKey, SpreadCell], key: SpreadCellKey) -> tuple[SpreadCell | None, str]:
+    def _lookup(
+        self, cells: dict[SpreadCellKey, SpreadCell], key: SpreadCellKey
+    ) -> tuple[SpreadCell | None, str]:
         """Walk the fallback chain; return (cell, level_description).
 
         The chain's terminal entry is the conservative global bound, reached
@@ -115,10 +117,7 @@ class SpreadModel:
                 # the level includes "news", the match is exact. The wildcard
                 # cannot be inferred from the value: False is also a real
                 # value of the field.
-                and (
-                    "news" not in level
-                    or k.news_proximity == key.news_proximity
-                )
+                and ("news" not in level or k.news_proximity == key.news_proximity)
             ]
             if matches:
                 # Aggregate samples across matching cells at this level.
@@ -157,7 +156,9 @@ class SpreadModel:
         }
         return Decimal(str(sample)), provenance
 
-    def stop_exit_draw(self, key: SpreadCellKey, *, rng: Random | None = None) -> tuple[Decimal, dict]:
+    def stop_exit_draw(
+        self, key: SpreadCellKey, *, rng: Random | None = None
+    ) -> tuple[Decimal, dict]:
         """COST-012: stop exits use their own model, conditioned on stress."""
         return self.draw(key, kind="stop_exit", rng=rng)
 

@@ -28,8 +28,12 @@ def _config(tmp_path: Path) -> CaptureConfig:
 def test_bounded_run_terminates_against_dead_feed(tmp_path):
     """Every poll ATTEMPT counts toward max_cycles: a bounded smoke run
     against a permanently failing feed must terminate, not retry forever."""
-    cfg = CaptureConfig(symbols=("EURUSD",), output_dir=tmp_path / "q",
-                        continuity_threshold_ms={}, episode_minimums={})
+    cfg = CaptureConfig(
+        symbols=("EURUSD",),
+        output_dir=tmp_path / "q",
+        continuity_threshold_ms={},
+        episode_minimums={},
+    )
 
     def dead_feed(symbol):
         raise ConnectionError("feed down")
@@ -55,8 +59,7 @@ def test_cli_without_injected_source_uses_mt5_source(tmp_path, monkeypatch):
     monkeypatch.setattr(service_mod, "_default_quote_fn", fake_source)
     config_path = tmp_path / "capture.yaml"
     config_path.write_text(
-        "symbols:\n  - EURUSD\noutput_dir: " + str(tmp_path / "q").replace("\\\\", "/")
-        + "\n",
+        "symbols:\n  - EURUSD\noutput_dir: " + str(tmp_path / "q").replace("\\\\", "/") + "\n",
         encoding="utf-8",
     )
     assert run_capture(config_path, max_cycles=1) == 0
@@ -171,9 +174,7 @@ def test_episode_report_counts_visits_not_rows(tmp_path):
     ]
     with (root / "2024-01.jsonl").open("w", encoding="utf-8") as fh:
         for t in ts:
-            fh.write(
-                json.dumps({"ts": t, "bid": 1.1, "ask": 1.1, "sequence_gap": False}) + "\n"
-            )
+            fh.write(json.dumps({"ts": t, "bid": 1.1, "ask": 1.1, "sequence_gap": False}) + "\n")
     counts = episode_counts(tmp_path / "quotes")
     assert counts["episodes"]["EURUSD"]["asia"] == 1
     assert counts["episodes"]["EURUSD"]["london"] == 1

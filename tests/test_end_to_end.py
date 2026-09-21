@@ -45,12 +45,19 @@ def _ticks(n: int = 5400) -> pl.DataFrame:
 
 def _spec() -> InstrumentSpec:
     return InstrumentSpec(
-        symbol="EURUSD", venue_symbol="EURUSD",
-        point_size=Decimal("0.00001"), pip_size=Decimal("0.0001"),
-        contract_size=Decimal("100000"), tick_size=Decimal("0.00001"),
-        tick_value=Decimal("1.0"), quote_currency="USD",
-        volume_min=Decimal("0.01"), volume_step=Decimal("0.01"),
-        volume_max=Decimal("100.0"), stops_level_points=0, freeze_level_points=0,
+        symbol="EURUSD",
+        venue_symbol="EURUSD",
+        point_size=Decimal("0.00001"),
+        pip_size=Decimal("0.0001"),
+        contract_size=Decimal("100000"),
+        tick_size=Decimal("0.00001"),
+        tick_value=Decimal("1.0"),
+        quote_currency="USD",
+        volume_min=Decimal("0.01"),
+        volume_step=Decimal("0.01"),
+        volume_max=Decimal("100.0"),
+        stops_level_points=0,
+        freeze_level_points=0,
     )
 
 
@@ -66,8 +73,7 @@ def test_toy_strategy_runs_the_full_vertical_slice():
     features = engine.compute(bars)
     assert "trend_state" in features.columns
 
-    toy = PullbackToy(stop_pips=Decimal("2"), target_pips=Decimal("4"),
-                      volume=Decimal("0.10"))
+    toy = PullbackToy(stop_pips=Decimal("2"), target_pips=Decimal("4"), volume=Decimal("0.10"))
     bt = TickBacktester(
         spec=_spec(),
         fees=FeeSchedule(
@@ -106,14 +112,17 @@ def test_toy_treats_stale_features_as_no_trade():
     engine = FeatureEngine(params=FeatureParams(trend_window=20, vol_regime_lookback=60))
     features = engine.compute(bars)
 
-    toy = PullbackToy(stop_pips=Decimal("2"), target_pips=Decimal("4"),
-                      volume=Decimal("0.10"))
+    toy = PullbackToy(stop_pips=Decimal("2"), target_pips=Decimal("4"), volume=Decimal("0.10"))
     bt = TickBacktester(
         spec=_spec(),
-        fees=FeeSchedule(symbol="EURUSD", commission_per_lot_round_trip=Decimal("7"),
-                         swap_long_per_lot_per_day=Decimal("0"),
-                         swap_short_per_lot_per_day=Decimal("0")),
-        latency=dt.timedelta(0), value_per_point_per_lot=Decimal("100000"),
+        fees=FeeSchedule(
+            symbol="EURUSD",
+            commission_per_lot_round_trip=Decimal("7"),
+            swap_long_per_lot_per_day=Decimal("0"),
+            swap_short_per_lot_per_day=Decimal("0"),
+        ),
+        latency=dt.timedelta(0),
+        value_per_point_per_lot=Decimal("100000"),
     )
     result = bt.run(symbol="EURUSD", ticks=ticks, features=features, strategy=toy)
     first_feature = features["available_at"].min()

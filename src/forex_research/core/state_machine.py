@@ -47,7 +47,9 @@ _ALLOWED: dict[OrderStatus, frozenset[OrderStatus]] = {
     OrderStatus.OPEN: frozenset(
         {OrderStatus.CLOSED_SL, OrderStatus.CLOSED_TP, OrderStatus.CLOSED_MANUAL}
     ),
-    OrderStatus.REQUOTED: frozenset({OrderStatus.SUBMITTED}),  # accept within tolerance, else abandon
+    OrderStatus.REQUOTED: frozenset(
+        {OrderStatus.SUBMITTED}
+    ),  # accept within tolerance, else abandon
     OrderStatus.UNKNOWN: frozenset(),  # resolve via EXEC-031; never resubmit here
     OrderStatus.REJECTED: frozenset(),  # logged, no retry within the bar
     OrderStatus.CLOSED_SL: frozenset(),

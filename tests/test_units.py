@@ -34,8 +34,12 @@ def test_volume_rounds_down():
 
 def test_cost_rounds_up_and_stop_distance_up():
     assert round_cost_up(Decimal("1.201"), quantum=Decimal("0.01")) == Decimal("1.21")
-    assert round_stop_distance_up(Decimal("0.00042"), point_size=Decimal("0.00001")) == Decimal("0.00042")
-    assert round_stop_distance_up(Decimal("0.000421"), point_size=Decimal("0.00001")) == Decimal("0.00043")
+    assert round_stop_distance_up(Decimal("0.00042"), point_size=Decimal("0.00001")) == Decimal(
+        "0.00042"
+    )
+    assert round_stop_distance_up(Decimal("0.000421"), point_size=Decimal("0.00001")) == Decimal(
+        "0.00043"
+    )
 
 
 def test_round_half_even_is_presentation_only():

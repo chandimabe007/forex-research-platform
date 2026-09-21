@@ -12,8 +12,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal
 
-MULTIPLIERS = (Decimal("0.75"), Decimal("1.0"), Decimal("1.25"), Decimal("1.5"),
-               Decimal("1.75"), Decimal("2.0"))
+MULTIPLIERS = (
+    Decimal("0.75"),
+    Decimal("1.0"),
+    Decimal("1.25"),
+    Decimal("1.5"),
+    Decimal("1.75"),
+    Decimal("2.0"),
+)
 
 
 @dataclass(frozen=True)
@@ -40,7 +46,6 @@ def run_sensitivity(net_expectancy_at) -> SensitivitySurface:
     """``net_expectancy_at(multiplier) -> Decimal`` is supplied by the caller
     (a full backtest per multiplier)."""
     points = tuple(
-        SensitivityPoint(multiplier=m, net_expectancy=net_expectancy_at(m))
-        for m in MULTIPLIERS
+        SensitivityPoint(multiplier=m, net_expectancy=net_expectancy_at(m)) for m in MULTIPLIERS
     )
     return SensitivitySurface(points=points)

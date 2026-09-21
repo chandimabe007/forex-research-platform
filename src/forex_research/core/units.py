@@ -23,8 +23,7 @@ def D(value: str | int | Decimal) -> Decimal:
     """Construct a Decimal exactly. Floats are rejected by design (ARCH-001)."""
     if isinstance(value, float):
         raise UnitError(
-            "float is not accepted at broker boundaries (ARCH-001); "
-            "pass a string, int or Decimal"
+            "float is not accepted at broker boundaries (ARCH-001); pass a string, int or Decimal"
         )
     return Decimal(value)
 

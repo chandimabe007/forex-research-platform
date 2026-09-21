@@ -29,9 +29,7 @@ DOCS = {
     "5-operations-runbook.md": "OPS, SEC",
 }
 
-PREFIXES = (
-    "PROD|GATE|VAL|ARCH|DATA|FEAT|COST|STRAT|RISK|CHAL|EXEC|MILE|OPS|SEC|BT"
-)
+PREFIXES = "PROD|GATE|VAL|ARCH|DATA|FEAT|COST|STRAT|RISK|CHAL|EXEC|MILE|OPS|SEC|BT"
 ID_PATTERN = rf"(?:{PREFIXES})-\d{{2,4}}[a-z]?"
 
 # Heading definitions: "## ID · Title" and "### ID · Title".
@@ -41,9 +39,7 @@ TABLE_DEF_RE = re.compile(rf"^\|\s*[`*_\s]*({ID_PATTERN})[`*_\s]*\|", re.MULTILI
 # Any ID token anywhere in the spec text.
 ANY_ID_RE = re.compile(ID_PATTERN)
 IMPLEMENTS_RE = re.compile(r"\*\*Implements:\*\*\s*(.+)")
-RANGE_TOKEN_RE = re.compile(
-    rf"\b({ID_PATTERN})\s*(?:–|—|to)\s*`?([A-Z]+-\d{{2,4}}[a-z]?)\b"
-)
+RANGE_TOKEN_RE = re.compile(rf"\b({ID_PATTERN})\s*(?:–|—|to)\s*`?([A-Z]+-\d{{2,4}}[a-z]?)\b")
 
 # Non-buildable requirements: milestones themselves (doc 4), plus the charter
 # and process-governance requirements that carry no construction artefact and
@@ -60,11 +56,11 @@ NON_BUILDABLE_IDS = {
     "PROD-022",  # the three unknowns (owned by the gates)
     "PROD-030",  # known weaknesses of the specification
     "PROD-031",  # claims deliberately not made
-    "OPS-031",   # disk capacity governance
-    "OPS-032",   # ledger integrity governance
-    "OPS-033",   # schema/config migration governance
-    "OPS-041",   # retention policy
-    "OPS-050",   # declared-constants governance
+    "OPS-031",  # disk capacity governance
+    "OPS-032",  # ledger integrity governance
+    "OPS-033",  # schema/config migration governance
+    "OPS-041",  # retention policy
+    "OPS-050",  # declared-constants governance
 }
 # MILE-002's definition-of-ready checklist assigns schema/build work by name.
 CHECKBOX_RE = re.compile(r"^- \[[ xX]\] .*$", re.MULTILINE)
@@ -94,9 +90,7 @@ def main() -> int:
         for rid in found:
             prefix = rid.split("-")[0]
             if prefix not in allowed:
-                print(
-                    f"FAIL: {name} defines {rid} but its declared prefixes are '{prefix_decl}'"
-                )
+                print(f"FAIL: {name} defines {rid} but its declared prefixes are '{prefix_decl}'")
                 return 1
         for rid in found:
             if rid in definitions:

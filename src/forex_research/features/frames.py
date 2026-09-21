@@ -28,9 +28,7 @@ def join_asof(
 ) -> pl.DataFrame:
     """Backward asof join with a mandatory tolerance."""
     if not tolerance:
-        raise MissingTolerance(
-            "FEAT-002: joins carry a staleness tolerance — pass one explicitly"
-        )
+        raise MissingTolerance("FEAT-002: joins carry a staleness tolerance — pass one explicitly")
     keep = [right_on] + (columns or [c for c in right.columns if c != right_on])
     right_sel = right.select(keep).sort(right_on)
     return left.sort(left_on).join_asof(

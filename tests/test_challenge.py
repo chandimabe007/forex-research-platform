@@ -16,8 +16,9 @@ from forex_research.config.schemas import (
 
 UTC = dt.UTC
 PRAGUE = "Europe/Prague"
-PROV = Provenance(source_url="https://example.com/terms",
-                  retrieved_at=dt.datetime(2026, 9, 20, tzinfo=UTC))
+PROV = Provenance(
+    source_url="https://example.com/terms", retrieved_at=dt.datetime(2026, 9, 20, tzinfo=UTC)
+)
 
 
 def _rule(**kw):
@@ -69,16 +70,22 @@ def test_intrabar_breach_detected_even_though_close_recovers():
     # recovers by the close — the breach stands, exactly once.
     path = [
         # 23:30 UTC Jan 1 = 00:30 local Jan 2: just after the reset.
-        AccountPoint(ts=dt.datetime(2024, 1, 1, 23, 30, tzinfo=UTC),
-                     equity=Decimal("100000"), balance=Decimal("100000"),
-                     positions_open=0),
+        AccountPoint(
+            ts=dt.datetime(2024, 1, 1, 23, 30, tzinfo=UTC),
+            equity=Decimal("100000"),
+            balance=Decimal("100000"),
+            positions_open=0,
+        ),
         _pt(9, 0, "96000"),
         _pt(11, 0, "94500"),  # breach moment
         _pt(12, 0, "96000"),  # recovered; must NOT un-breach
     ]
     breaches = evaluate_phase(
-        phase_name="challenge", rules=_rules(ratchet=False),
-        initial_capital=CAPITAL, path=path, venue_zone=PRAGUE,
+        phase_name="challenge",
+        rules=_rules(ratchet=False),
+        initial_capital=CAPITAL,
+        path=path,
+        venue_zone=PRAGUE,
     )
     daily = [b for b in breaches if b.rule == "maximum_daily_loss"]
     assert len(daily) == 1
@@ -92,11 +99,14 @@ def test_daily_reset_crossed_with_position_open():
     path = [
         _pt(9, 0, "98000", balance="100000", positions=1),
         _pt(23, 59, "97500", balance="100000", positions=1),  # still day 1
-        _pt(0, 30, "98000", balance="97500", positions=1),    # day 2 after reset
+        _pt(0, 30, "98000", balance="97500", positions=1),  # day 2 after reset
     ]
     breaches = evaluate_phase(
-        phase_name="challenge", rules=_rules(ratchet=False),
-        initial_capital=CAPITAL, path=path, venue_zone=PRAGUE,
+        phase_name="challenge",
+        rules=_rules(ratchet=False),
+        initial_capital=CAPITAL,
+        path=path,
+        venue_zone=PRAGUE,
     )
     daily = [b for b in breaches if b.rule == "maximum_daily_loss"]
     assert daily == []  # day 1 floor 95k, day 2 baseline 97.5k -> floor 92.5k
@@ -111,15 +121,21 @@ def test_gate003_floating_profit_ratchet():
     path = [
         _pt(9, 0, "100000", balance="100000", positions=1),
         _pt(23, 59, "103000", balance="100000", positions=1),  # floating +3k
-        _pt(0, 30, "97500", balance="100000", positions=1),    # day 2 retrace
+        _pt(0, 30, "97500", balance="100000", positions=1),  # day 2 retrace
     ]
     with_ratchet = evaluate_phase(
-        phase_name="challenge", rules=_rules(ratchet=True),
-        initial_capital=CAPITAL, path=path, venue_zone=PRAGUE,
+        phase_name="challenge",
+        rules=_rules(ratchet=True),
+        initial_capital=CAPITAL,
+        path=path,
+        venue_zone=PRAGUE,
     )
     without_ratchet = evaluate_phase(
-        phase_name="challenge", rules=_rules(ratchet=False),
-        initial_capital=CAPITAL, path=path, venue_zone=PRAGUE,
+        phase_name="challenge",
+        rules=_rules(ratchet=False),
+        initial_capital=CAPITAL,
+        path=path,
+        venue_zone=PRAGUE,
     )
     assert any(b.rule == "maximum_daily_loss" for b in with_ratchet)
     assert not any(b.rule == "maximum_daily_loss" for b in without_ratchet)
@@ -128,8 +144,11 @@ def test_gate003_floating_profit_ratchet():
 def test_profit_target_hits_recorded_as_soft():
     path = [_pt(9, 0, "100000"), _pt(15, 0, "110000")]
     breaches = evaluate_phase(
-        phase_name="challenge", rules=_rules(ratchet=False),
-        initial_capital=CAPITAL, path=path, venue_zone=PRAGUE,
+        phase_name="challenge",
+        rules=_rules(ratchet=False),
+        initial_capital=CAPITAL,
+        path=path,
+        venue_zone=PRAGUE,
     )
     targets = [b for b in breaches if b.rule == "profit_target"]
     assert len(targets) == 1
@@ -140,8 +159,11 @@ def test_profit_target_hits_recorded_as_soft():
 def test_maximum_loss_hard_breach():
     path = [_pt(9, 0, "90500"), _pt(10, 0, "89500")]
     breaches = evaluate_phase(
-        phase_name="challenge", rules=_rules(ratchet=False),
-        initial_capital=CAPITAL, path=path, venue_zone=PRAGUE,
+        phase_name="challenge",
+        rules=_rules(ratchet=False),
+        initial_capital=CAPITAL,
+        path=path,
+        venue_zone=PRAGUE,
     )
     hard = [b for b in breaches if b.rule == "maximum_loss"]
     assert len(hard) == 1

@@ -29,8 +29,12 @@ def test_zero_slippage_returns_exactly_the_quoted_ask():
     quotes = {t0: (Decimal("1.09995"), Decimal("1.10000"))}
     engine = FillEngine(quote_at=_quote_series(quotes), latency=dt.timedelta(0))
     intent = OrderIntent(
-        side=Side.BUY, order_type=OrderType.MARKET, limit_or_stop_price=None,
-        stop_loss=Decimal("1.09900"), take_profit=None, volume=Decimal("0.10"),
+        side=Side.BUY,
+        order_type=OrderType.MARKET,
+        limit_or_stop_price=None,
+        stop_loss=Decimal("1.09900"),
+        take_profit=None,
+        volume=Decimal("0.10"),
     )
     report = engine.fill_market(intent, decision_time=t0)
     assert report is not None
@@ -55,27 +59,36 @@ def test_latency_move_reported_and_residual_sampled_separately():
     )
     engine.set_instrument(pip_size=Decimal("0.0001"))
     intent = OrderIntent(
-        side=Side.BUY, order_type=OrderType.MARKET, limit_or_stop_price=None,
-        stop_loss=Decimal("1.09900"), take_profit=None, volume=Decimal("0.10"),
+        side=Side.BUY,
+        order_type=OrderType.MARKET,
+        limit_or_stop_price=None,
+        stop_loss=Decimal("1.09900"),
+        take_profit=None,
+        volume=Decimal("0.10"),
     )
     report = engine.fill_market(intent, decision_time=t0)
     assert report.arrival_quote == Decimal("1.10010")
     assert report.latency_move == Decimal("0.00010")  # 1 pip, reported
-    assert report.residual == Decimal("0.00002")      # 0.2 pip, the only sample
-    assert report.fill_price == Decimal("1.10012")    # arrival + residual, once
+    assert report.residual == Decimal("0.00002")  # 0.2 pip, the only sample
+    assert report.fill_price == Decimal("1.10012")  # arrival + residual, once
 
 
 def test_sell_fills_at_bid_minus_adverse():
     t0 = dt.datetime(2024, 1, 2, 10, 0, tzinfo=UTC)
     quotes = {t0: (Decimal("1.09995"), Decimal("1.10000"))}
     engine = FillEngine(
-        quote_at=_quote_series(quotes), latency=dt.timedelta(0),
+        quote_at=_quote_series(quotes),
+        latency=dt.timedelta(0),
         slippage_pips_sampler=lambda intent, at: Decimal("0.5"),
     )
     engine.set_instrument(pip_size=Decimal("0.0001"))
     intent = OrderIntent(
-        side=Side.SELL, order_type=OrderType.MARKET, limit_or_stop_price=None,
-        stop_loss=Decimal("1.10100"), take_profit=None, volume=Decimal("0.10"),
+        side=Side.SELL,
+        order_type=OrderType.MARKET,
+        limit_or_stop_price=None,
+        stop_loss=Decimal("1.10100"),
+        take_profit=None,
+        volume=Decimal("0.10"),
     )
     report = engine.fill_market(intent, decision_time=t0)
     assert report.fill_price == Decimal("1.09990")  # bid 1.09995 minus 0.5 pip
@@ -90,8 +103,12 @@ def test_limit_fills_at_level_or_not_at_all():
     }
     engine = FillEngine(quote_at=_quote_series(quotes), latency=dt.timedelta(0))
     intent = OrderIntent(
-        side=Side.BUY, order_type=OrderType.LIMIT, limit_or_stop_price=Decimal("1.09950"),
-        stop_loss=Decimal("1.09850"), take_profit=None, volume=Decimal("0.10"),
+        side=Side.BUY,
+        order_type=OrderType.LIMIT,
+        limit_or_stop_price=Decimal("1.09950"),
+        stop_loss=Decimal("1.09850"),
+        take_profit=None,
+        volume=Decimal("0.10"),
     )
     # t0: ask 1.10005 above the level -> no fill, no favourable slippage.
     assert engine.fill_limit(intent, decision_time=t0) is None
@@ -120,8 +137,14 @@ def test_commission_both_legs_and_triple_swap_wednesday():
 def test_sensitivity_surface_rejects_cost_artefact():
     # 1.25x removing more than half the expectancy is a cost artefact.
     def artefact(m):
-        table = {"0.75": Decimal("10"), "1.0": Decimal("8"), "1.25": Decimal("2"),
-                 "1.5": Decimal("0"), "1.75": Decimal("-2"), "2.0": Decimal("-4")}
+        table = {
+            "0.75": Decimal("10"),
+            "1.0": Decimal("8"),
+            "1.25": Decimal("2"),
+            "1.5": Decimal("0"),
+            "1.75": Decimal("-2"),
+            "2.0": Decimal("-4"),
+        }
         return table[str(m)]
 
     surface = run_sensitivity(artefact)

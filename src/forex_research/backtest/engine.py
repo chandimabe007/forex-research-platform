@@ -156,8 +156,9 @@ class TickBacktester:
     ) -> BacktestResult:
         result = BacktestResult()
         quote_at = self._quote_fn(ticks)
-        fill_engine = FillEngine(quote_at=quote_at, latency=self.latency,
-                                 slippage_pips_sampler=self._slippage)
+        fill_engine = FillEngine(
+            quote_at=quote_at, latency=self.latency, slippage_pips_sampler=self._slippage
+        )
         fill_engine.set_instrument(pip_size=self.spec.pip_size)
 
         ts_list = ticks["ts"].to_list()
@@ -200,7 +201,13 @@ class TickBacktester:
             # the stop level, and that tail must be visible in the results.
             if position is not None:
                 exit_ = self._check_exits(
-                    position, bid, ask, now, fill_engine, result, symbol,
+                    position,
+                    bid,
+                    ask,
+                    now,
+                    fill_engine,
+                    result,
+                    symbol,
                     after_weekend_gap=(prev_ts is not None and _spans_weekend(prev_ts, now)),
                 )
                 if exit_ is not None:
@@ -217,7 +224,9 @@ class TickBacktester:
             if signal is not None and position is None:
                 intent = signal.intent
                 if self._session_close_at and now >= self._session_close_at - self._no_entry_window:
-                    result.rejected_orders.append("inside no-entry window of session close (BT-030)")
+                    result.rejected_orders.append(
+                        "inside no-entry window of session close (BT-030)"
+                    )
                 elif intent.volume < self.spec.volume_min:
                     result.rejected_orders.append("volume below volume_min (BT-030)")
                 else:
@@ -232,22 +241,23 @@ class TickBacktester:
                                 intent, decision_time=now, pip_size=self.spec.pip_size
                             )
                             if report is not None:
-                                position = self._open_position(
-                                    intent, report, now, symbol, result
-                                )
+                                position = self._open_position(intent, report, now, symbol, result)
                         else:
                             # LIMIT/STOP rest as pending until their trigger
                             # (ARCH-002 position 5 precedes the exit check 7).
                             pending.append(
-                                PendingOrder(intent=intent, submitted_at=now,
-                                             status=OrderStatus.SUBMITTED)
+                                PendingOrder(
+                                    intent=intent, submitted_at=now, status=OrderStatus.SUBMITTED
+                                )
                             )
             prev_ts = now
         # Unresolved pending orders at stream end are abandoned (logged upstream).
         return result
 
     # -- fill/exit internals --------------------------------------------------
-    def _try_fill_pending(self, po: PendingOrder, now, fill_engine, result, symbol) -> Position | None:
+    def _try_fill_pending(
+        self, po: PendingOrder, now, fill_engine, result, symbol
+    ) -> Position | None:
         # A resting order is triggered by the CURRENT tick: ``now`` is the
         # arrival context, so the canonical rule (first quote at or after the
         # trigger) resolves against the tick being examined (BT-010/011).
@@ -257,15 +267,20 @@ class TickBacktester:
         elif intent.order_type is OrderType.STOP:
             report = fill_engine.fill_stop(intent, decision_time=now)
         else:
-            report = fill_engine.fill_market(intent, decision_time=now,
-                                             pip_size=self.spec.pip_size)
+            report = fill_engine.fill_market(intent, decision_time=now, pip_size=self.spec.pip_size)
         if report is None:
             return None  # not triggered on this tick; stays resting
         transition(OrderStatus.SUBMITTED, OrderStatus.FILLED)
         return self._open_position(intent, report, po.submitted_at, symbol, result)
 
-    def _open_position(self, intent: OrderIntent, report: FillReport, decision_time,
-                       symbol: str, result: BacktestResult) -> Position:
+    def _open_position(
+        self,
+        intent: OrderIntent,
+        report: FillReport,
+        decision_time,
+        symbol: str,
+        result: BacktestResult,
+    ) -> Position:
         stop_distance = abs(report.fill_price - intent.stop_loss)
         risk = stop_distance * intent.volume * self._contract
         return Position(
@@ -278,15 +293,22 @@ class TickBacktester:
             risk_amount=risk,
         )
 
-    def _check_exits(self, position: Position, bid: Decimal, ask: Decimal, now,
-                     fill_engine, result: BacktestResult, symbol: str,
-                     *, after_weekend_gap: bool = False) -> Trade | None:
+    def _check_exits(
+        self,
+        position: Position,
+        bid: Decimal,
+        ask: Decimal,
+        now,
+        fill_engine,
+        result: BacktestResult,
+        symbol: str,
+        *,
+        after_weekend_gap: bool = False,
+    ) -> Trade | None:
         """Broker-side SL/TP evaluated against the side the position closes
         at (BT-012). Long exits at bid; short exits at ask."""
         close_quote = bid if position.side is Side.BUY else ask
-        stopped = (
-            position.side is Side.BUY and close_quote <= position.stop_loss
-        ) or (
+        stopped = (position.side is Side.BUY and close_quote <= position.stop_loss) or (
             position.side is Side.SELL and close_quote >= position.stop_loss
         )
         target_hit = position.take_profit is not None and (
@@ -308,16 +330,16 @@ class TickBacktester:
                 if self._stop_exit_spread
                 else Decimal(0)
             ) * self.spec.pip_size
-            exit_price = (close_quote - adverse) if position.side is Side.BUY else (close_quote + adverse)
+            exit_price = (
+                (close_quote - adverse) if position.side is Side.BUY else (close_quote + adverse)
+            )
         elif position.take_profit is not None:
             exit_price = position.take_profit
 
         pnl = self._pnl(position.side, position.volume, position.entry_price, exit_price)
         commission = self.fees.commission(position.volume)
         net = pnl - commission
-        r_multiple = (
-            (net / position.risk_amount) if position.risk_amount > 0 else None
-        )
+        r_multiple = (net / position.risk_amount) if position.risk_amount > 0 else None
         method = "tick"  # tick replay resolves exactly (BT-020 default)
         result.resolution_methods[method] = result.resolution_methods.get(method, 0) + 1
         # Ambiguity at tick granularity is impossible unless stop and target

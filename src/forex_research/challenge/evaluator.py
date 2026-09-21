@@ -59,8 +59,9 @@ def _amount(rule: AtomicRule, initial_capital: Decimal) -> Decimal:
 def _anchor_for(ts: datetime, zone: ZoneInfo, reset_time: time) -> datetime:
     """The venue-local reset instant at or before ``ts`` (GATE-005 zone)."""
     local = ts.astimezone(zone).replace(tzinfo=None)
-    candidate = local.replace(hour=reset_time.hour, minute=reset_time.minute,
-                              second=0, microsecond=0)
+    candidate = local.replace(
+        hour=reset_time.hour, minute=reset_time.minute, second=0, microsecond=0
+    )
     if local < candidate:
         candidate = candidate - _dt.timedelta(days=1)
     return candidate.replace(tzinfo=zone).astimezone(_dt.UTC)
@@ -106,8 +107,9 @@ def evaluate_phase(
         if day is None or anchor > day.anchor:
             # A new reset period begins: baseline is the balance at the reset
             # (floor_basis balance_at_reset_minus_amount), per CHAL-010.
-            day = _DayState(anchor=anchor, baseline=point.balance,
-                            ratchet_high=max(point.balance, point.equity))
+            day = _DayState(
+                anchor=anchor, baseline=point.balance, ratchet_high=max(point.balance, point.equity)
+            )
         else:
             day.ratchet_high = max(day.ratchet_high, point.equity)
 
@@ -121,23 +123,49 @@ def evaluate_phase(
             baseline = day.ratchet_high if daily_rule.ratchet_on_equity else day.baseline
             floor = baseline - _amount(daily_rule, initial_capital)
             semantics = daily_rule.breach_semantics or BreachSemantics.FALLS_BELOW
-            breached = (point.equity < floor if semantics is BreachSemantics.FALLS_BELOW
-                        else point.equity <= floor)
+            breached = (
+                point.equity < floor
+                if semantics is BreachSemantics.FALLS_BELOW
+                else point.equity <= floor
+            )
             if breached:
-                breaches.append(Breach("maximum_daily_loss", phase_name, point.ts,
-                                       daily_rule.breach_severity or BreachSeverity.HARD,
-                                       point.equity, floor))
+                breaches.append(
+                    Breach(
+                        "maximum_daily_loss",
+                        phase_name,
+                        point.ts,
+                        daily_rule.breach_severity or BreachSeverity.HARD,
+                        point.equity,
+                        floor,
+                    )
+                )
 
         if max_floor is not None and point.equity < max_floor:
-            breaches.append(Breach("maximum_loss", phase_name, point.ts,
-                                   (max_rule.breach_severity or BreachSeverity.HARD)
-                                   if max_rule else BreachSeverity.HARD,
-                                   point.equity, max_floor))
+            breaches.append(
+                Breach(
+                    "maximum_loss",
+                    phase_name,
+                    point.ts,
+                    (max_rule.breach_severity or BreachSeverity.HARD)
+                    if max_rule
+                    else BreachSeverity.HARD,
+                    point.equity,
+                    max_floor,
+                )
+            )
 
         if target_level is not None and point.equity >= target_level:
-            breaches.append(Breach("profit_target", phase_name, point.ts,
-                                   (target_rule.breach_severity or BreachSeverity.SOFT)
-                                   if target_rule else BreachSeverity.SOFT,
-                                   point.equity, target_level))
+            breaches.append(
+                Breach(
+                    "profit_target",
+                    phase_name,
+                    point.ts,
+                    (target_rule.breach_severity or BreachSeverity.SOFT)
+                    if target_rule
+                    else BreachSeverity.SOFT,
+                    point.equity,
+                    target_level,
+                )
+            )
 
     return breaches

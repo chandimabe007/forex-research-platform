@@ -29,7 +29,7 @@ class AccountSnapshot:
     equity: Decimal
     balance: Decimal
     margin_available: Decimal
-    daily_loss_so_far: Decimal       # realised + floating against today's floor
+    daily_loss_so_far: Decimal  # realised + floating against today's floor
     foreign_positions_present: bool  # RISK-012
 
 
@@ -37,9 +37,9 @@ class AccountSnapshot:
 class RiskLimits:
     """Declared configuration with rationale (OPS-050, RISK-030 defaults)."""
 
-    per_trade_risk_pct: Decimal = Decimal("0.005")   # 0.5%
-    total_open_risk_pct: Decimal = Decimal("0.02")   # 2.0%
-    daily_loss_soft_pct: Decimal = Decimal("0.60")   # of the firm's daily limit
+    per_trade_risk_pct: Decimal = Decimal("0.005")  # 0.5%
+    total_open_risk_pct: Decimal = Decimal("0.02")  # 2.0%
+    daily_loss_soft_pct: Decimal = Decimal("0.60")  # of the firm's daily limit
     max_concurrent_positions: int = 4
 
 
@@ -121,13 +121,19 @@ class RiskEngine:
         equity = D(account.equity)
         # 2. risk_budget = min of every headroom, net of reservations (RISK-013).
         configured = equity * D(self.limits.per_trade_risk_pct)
-        daily_headroom = (
-            daily_limit * D(self.limits.daily_loss_soft_pct) - D(account.daily_loss_so_far)
+        daily_headroom = daily_limit * D(self.limits.daily_loss_soft_pct) - D(
+            account.daily_loss_so_far
         )
-        max_headroom = equity * D(self.limits.total_open_risk_pct) - D(open_risk) - reservations.total_max_loss()
+        max_headroom = (
+            equity * D(self.limits.total_open_risk_pct)
+            - D(open_risk)
+            - reservations.total_max_loss()
+        )
         exposure_headroom = max_headroom  # total-open-risk basis
         margin_headroom = D(account.margin_available) - reservations.total_margin()
-        risk_budget = min(configured, daily_headroom, max_headroom, exposure_headroom, margin_headroom)
+        risk_budget = min(
+            configured, daily_headroom, max_headroom, exposure_headroom, margin_headroom
+        )
         if risk_budget <= 0:
             return RiskDecision(False, "headroom exhausted — no capacity (RISK-010)")
 
@@ -152,11 +158,17 @@ class RiskEngine:
         risk_amount = effective_stop * volume * D(value_per_price_unit_per_lot)
         if risk_amount > risk_budget:
             return RiskDecision(
-                False, "recomputed risk exceeds headroom after rounding (RISK-010)",
+                False,
+                "recomputed risk exceeds headroom after rounding (RISK-010)",
                 effective_stop=effective_stop,
             )
-        return RiskDecision(True, "accepted (RISK-010)", volume=volume,
-                            risk_amount=risk_amount, effective_stop=effective_stop)
+        return RiskDecision(
+            True,
+            "accepted (RISK-010)",
+            volume=volume,
+            risk_amount=risk_amount,
+            effective_stop=effective_stop,
+        )
 
     # -- reservations ----------------------------------------------------------
     def try_reserve(

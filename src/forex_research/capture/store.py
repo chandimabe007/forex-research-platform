@@ -53,9 +53,7 @@ class TickStore:
             "sequence_gap": record.sequence_gap,
         }
         key = (record.symbol, month)
-        self._buffers.setdefault(key, []).append(
-            json.dumps(payload, separators=(",", ":"))
-        )
+        self._buffers.setdefault(key, []).append(json.dumps(payload, separators=(",", ":")))
         self._dirty_since_flush = True
 
     def flush_if_due(self, *, now: datetime | None = None) -> bool:

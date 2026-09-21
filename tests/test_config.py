@@ -62,21 +62,28 @@ def test_fee_schedule_with_canary_evidence_loads(tmp_path):
 
 
 def test_fee_schedule_without_server_observation_is_refused(tmp_path):
-    data = _fee_data(provenance={
-        "source_url": "https://example.com/terms",
-        "retrieved_at": "2026-09-21T01:52:44+00:00",
-        "observed_on_server": False,
-    })
+    data = _fee_data(
+        provenance={
+            "source_url": "https://example.com/terms",
+            "retrieved_at": "2026-09-21T01:52:44+00:00",
+            "observed_on_server": False,
+        }
+    )
     path = _write(tmp_path, "fees.yaml", data)
     with pytest.raises(ConfigError, match="observed on the server"):
         load_fee_schedules(path)
 
 
 def test_fee_schedule_refuses_unobserved_swaps_by_default(tmp_path):
-    path = _write(tmp_path, "fees.yaml", _fee_data(
-        swap_long_per_lot_per_day=None, swap_short_per_lot_per_day=None,
-        swaps_observed=False,
-    ))
+    path = _write(
+        tmp_path,
+        "fees.yaml",
+        _fee_data(
+            swap_long_per_lot_per_day=None,
+            swap_short_per_lot_per_day=None,
+            swaps_observed=False,
+        ),
+    )
     with pytest.raises(ConfigError, match="swap rates not observed"):
         load_fee_schedules(path)
     # Explicit demo acknowledgement is the only way through, and even then
@@ -165,7 +172,9 @@ def minimal_rules():
         "phases": {
             "challenge": {
                 "rules": {
-                    "profit_target": _verified_rule({"kind": "percent_initial_capital", "value": 10}),
+                    "profit_target": _verified_rule(
+                        {"kind": "percent_initial_capital", "value": 10}
+                    ),
                     "maximum_daily_loss": _verified_rule(
                         {"kind": "percent_initial_capital", "value": 5},
                         floor_basis="balance_at_reset_minus_amount",
