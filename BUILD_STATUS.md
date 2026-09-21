@@ -209,3 +209,29 @@ refuses it, so an invalid configuration can never persist. Writes only the
 two fixed config files; never credentials.
 - 15 HTTP round-trip and aggregation tests; full suite now 119.
 - Both services bind 127.0.0.1 only and store nothing.
+
+## Validation harness — VAL-040 core (2026-09-21)
+
+First increment of **MILE-050**: `src/forex_research/validation/deflated_sharpe.py`
+implements the primary acceptance rule and its two spec-guarded adjacents:
+
+- **VAL-040** — `dsr_decision`: DSR = Φ((SR̂ − SR₀)/SE) ≥ 0.95, with periodic
+  (never annualised) SR units enforced by failing loudly when the SE
+  expression goes non-positive — the spec's named unit failure.
+- **VAL-041** — both routes to SR₀, never both: `sr0_empirical`
+  (`s_ledger × E[max of N iid]`, the default) and `sr0_modelled`
+  (`σ × √(1−ρ) × E[max of N iid]`, measured ρ only). The regression suite
+  pins the spec's own double-deflation example (σ=0.60, ρ=0.80, N=500:
+  correct ≈0.815, the mistake ≈0.364 — less than half the hurdle) and
+  reproduces the spec's simulation standard: modelled route vs Monte-Carlo
+  equicorrelated maxima within the spec's 0.02 tolerance at N=100/500,
+  ρ=0/0.5/0.85. No effective-trial (Kish) count anywhere — the spec names
+  it as the every-strategy-passes failure.
+- **VAL-044** — `hac_se_of_sr`: Lo (2002) autocorrelation-sum adjustment
+  with Newey-West default lags; every decision records which SE method it
+  used, and a methodless SE is refused.
+
+Explicitly **not yet done for MILE-050**: VAL-042 diagnostics reporting,
+the VAL-043 false-positive simulation of the whole procedure, VAL-046
+power simulation, the trial ledger (VAL-045) that feeds `s_ledger`, and
+the block bootstrap — this module is the statistical core those wrap.
