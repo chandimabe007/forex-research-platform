@@ -163,3 +163,29 @@ expect — editable-installs the project with dev+mt5 extras, and runs
 checkouts that never ran `pre-commit install` are still gated the same way.
 The setup path was verified locally before commit (clean venv → editable
 install → full green board, MetaTrader5 included).
+
+## Branch protection (server-side merge gate)
+
+The repository is **public** as of 2026-09-21: branch protection and rulesets
+are paywalled on private repositories (confirmed via the REST API — HTTP 403
+"Upgrade to GitHub Pro or make this repository public" for both), and the
+owner chose public visibility over a paid plan. Required status checks on
+`main` are therefore active:
+
+- `gate (py3.11)` and `gate (py3.14)` must pass before any merge into `main`;
+- `enforce_admins: true` — no exceptions, including the repository owner;
+- force pushes and branch deletions refused; linear history required.
+
+`enforce_admins` was flipped after a behavioral probe caught the initial
+configuration allowing admin merges with checks still queued: a probe PR
+merged successfully (HTTP 200) before CI had started. With admin enforcement
+on, the same merge attempt is refused until both matrix jobs report success,
+verified live on a follow-up PR.
+
+Defense in depth for every change to `main`:
+
+1. **pre-push** — the tracked `hooks/pre-push` gate runs all nine hooks
+   before any push leaves this machine;
+2. **CI** — the same gate re-runs from scratch on GitHub for every push/PR;
+3. **required checks** — GitHub refuses merges into `main` until both jobs
+   pass.
