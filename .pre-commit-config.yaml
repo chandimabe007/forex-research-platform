@@ -7,14 +7,36 @@ repos:
       - id: end-of-file-fixer
       - id: trailing-whitespace
       - id: check-yaml
-  - repo: https://github.com/psf/black
-    rev: 24.8.0
-    hooks:
-      - id: black
-        files: ^src/|^tests/
+  # black deliberately NOT in the active gate: this codebase follows the
+  # ruff style (line-length 100, E501 ignored, see pyproject.toml). Running
+  # black's 88-col defaults would reformat ~34 files in a conflicting
+  # style. To adopt black project-wide, enable this block and run
+  # `pre-commit run --all-files` once as a dedicated style commit.
+  # - repo: https://github.com/psf/black
+  #   rev: 24.8.0
+  #   hooks:
+  #     - id: black
+  #       files: ^src/|^tests/
   - repo: https://github.com/charliermarsh/ruff-pre-commit
     rev: v0.6.9
     hooks:
       - id: ruff
         args: [--fix]
         files: ^src/|^tests/
+  # The manual verification gate: full test suite and the spec integrity
+  # checker, pinned to the project venv. Bypass one-off with --no-verify.
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest (full suite)
+        # Leading ./ is required on Windows (CreateProcess rejects relative
+        # exe paths without a separator). POSIX venvs use .venv/bin/python.
+        entry: ./.venv/Scripts/python.exe -m pytest -q
+        language: system
+        pass_filenames: false
+      - id: spec-references
+        name: spec reference checker
+        entry: ./.venv/Scripts/python.exe spec/tools/check_references.py
+        language: system
+        pass_filenames: false
+        files: ^spec/
