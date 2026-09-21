@@ -183,7 +183,35 @@ class ObjectiveConfig:
     min_acceptable_env: float | None
 
     def validate(self) -> list[str]:
-        """An all-null template is refused by the loader (MILE-002)."""
+        """An all-null template is refused by the loader (MILE-002).
+
+        Numeric fields sent as strings (a form or YAML quoting mistake) are
+        coerced before validation: failing with a TypeError instead of a
+        validation error violates the fail-closed contract — every caller
+        catches ConfigError, so a crash here escapes as an unhandled error
+        and, worse, can leave a configuration on disk that nothing can load.
+        """
+        for field_name in (
+            "target_annual_return",
+            "volatility_budget",
+            "account_size",
+            "max_fee_budget",
+            "min_acceptable_env",
+        ):
+            value = getattr(self, field_name)
+            if isinstance(value, str):
+                try:
+                    object.__setattr__(self, field_name, float(value))
+                except ValueError:
+                    # Unparseable text is discarded (treated as not provided) —
+                    # it can never satisfy the declaration gate, and leaving
+                    # the string in place would crash the comparisons below.
+                    object.__setattr__(self, field_name, None)
+        if isinstance(self.max_attempts, str):
+            try:
+                object.__setattr__(self, "max_attempts", int(self.max_attempts))
+            except ValueError:
+                object.__setattr__(self, "max_attempts", None)
         required = [
             self.target,
             self.horizon,
@@ -209,7 +237,7 @@ class ObjectiveConfig:
             errors.append("volatility_budget must be positive")
         if self.max_attempts is not None and self.max_attempts < 1:
             errors.append("max_attempts must be >= 1")
-        if self.min_acceptable_env is not None and self.min_acceptable_env >= 0:
+        if self.min_acceptable_env is not None and self.min_acceptable_env > 0:
             errors.append("min_acceptable_env is a floor on net value; it must be negative or zero")
         return errors
 

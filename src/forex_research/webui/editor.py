@@ -47,7 +47,7 @@ def readiness() -> dict:
                 else "template incomplete (GATE-031)",
             }
         )
-    except ConfigError as exc:
+    except Exception as exc:  # noqa: BLE001 — readiness is a diagnostic; report, never raise
         checks.append(
             {"name": "objective declared and valid (PROD-010)", "ready": False, "detail": str(exc)}
         )
@@ -66,7 +66,7 @@ def readiness() -> dict:
                 "detail": "all verified" if not unknown else f"unknown: {', '.join(unknown)}",
             }
         )
-    except ConfigError as exc:
+    except Exception as exc:  # noqa: BLE001 — readiness is a diagnostic; report, never raise
         checks.append(
             {"name": "all challenge rules verified (CHAL-011)", "ready": False, "detail": str(exc)}
         )
@@ -88,7 +88,25 @@ def _write_yaml(path: Path, data: dict) -> None:
     path.write_text(yaml.safe_dump(data, sort_keys=False, allow_unicode=True), encoding="utf-8")
 
 
+_NUMERIC_OBJECTIVE_FIELDS = (
+    "target_annual_return",
+    "volatility_budget",
+    "account_size",
+    "max_fee_budget",
+    "min_acceptable_env",
+)
+
+
 def _save_objective(body: dict) -> dict:
+    # The loader validates these as numbers; text that cannot parse is
+    # refused with a named-field message rather than coerced or crashed on.
+    for key in _NUMERIC_OBJECTIVE_FIELDS:
+        value = body.get(key)
+        if isinstance(value, str):
+            try:
+                float(value)
+            except ValueError:
+                return {"ok": False, "error": f"{key}: '{value}' is not a number"}
     return _write_validated(_OBJECTIVE, {"objective": body}, load_objective)
 
 
@@ -101,7 +119,9 @@ def _write_validated(path: Path, data: dict, validator) -> dict:
 
     The save is only kept if the same loader the research entry points use
     accepts it — a rejected save must never leave an invalid configuration
-    on disk.
+    on disk. A loader crash (say, a TypeError deep in validation) rolls back
+    too and surfaces as a refused save: the server must never die mid-request
+    or persist a configuration the engine itself cannot load.
     """
     previous = path.read_text(encoding="utf-8") if path.exists() else None
     _write_yaml(path, data)
@@ -113,6 +133,12 @@ def _write_validated(path: Path, data: dict, validator) -> dict:
         else:
             path.write_text(previous, encoding="utf-8")
         return {"ok": False, "error": str(exc)}
+    except Exception as exc:  # noqa: BLE001 — roll back and report, never persist
+        if previous is None:
+            path.unlink(missing_ok=True)
+        else:
+            path.write_text(previous, encoding="utf-8")
+        return {"ok": False, "error": f"validation crashed ({type(exc).__name__}: {exc})"}
     return {"ok": True, "wrote": str(path)}
 
 
