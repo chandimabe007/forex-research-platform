@@ -1,0 +1,12 @@
+objective:
+  target: evaluation_pass
+  horizon: 12 months
+  target_annual_return: 0.1
+  volatility_budget: 0.1
+  retry_on_failure: false
+  account_size: 100000
+  account_type: standard
+  max_attempts: 1
+  max_fee_budget: 540
+  max_calendar_time: 12 months
+  min_acceptable_env: 0

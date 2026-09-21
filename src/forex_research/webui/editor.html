@@ -148,7 +148,13 @@ const OBJ_FIELDS = [
   ["max_fee_budget", "o_max_fee_budget"], ["max_calendar_time", "o_max_calendar_time"],
   ["min_acceptable_env", "o_min_acceptable_env"],
 ];
-const NUMERIC_FIELDS = new Set(["target_annual_return", "volatility_budget", "account_size", "max_fee_budget"]);
+// Fields the loader validates as numbers (schemas.py) — the form must send
+// numbers, not strings, or the objective is rejected for the wrong reason.
+const NUMERIC_FIELDS = new Set([
+  "target_annual_return", "volatility_budget", "account_size",
+  "max_fee_budget", "min_acceptable_env",
+]);
+const INT_FIELDS = new Set(["max_attempts"]);
 
 function fillObjective(obj) {
   objectiveData = obj || {};
@@ -164,8 +170,8 @@ function collectObjective() {
     const raw = $(id).value.trim();
     if (raw === "") { out[key] = null; continue; }
     if (key === "retry_on_failure") out[key] = raw === "true";
-    else if (NUMERIC_FIELDS.has(key)) { const n = Number(raw); out[key] = Number.isFinite(n) ? n : raw; }
-    else if (key === "max_attempts") { const n = parseInt(raw, 10); out[key] = Number.isFinite(n) ? n : raw; }
+    else if (INT_FIELDS.has(key)) { const n = parseInt(raw, 10); out[key] = Number.isFinite(n) ? n : null; }
+    else if (NUMERIC_FIELDS.has(key)) { const n = Number(raw); out[key] = Number.isFinite(n) ? n : null; }
     else out[key] = raw;
   }
   return out;

@@ -1,0 +1,139 @@
+# FTMO Challenge: 2-Step — $100,000 — verified 2026-09-21 from FTMO's official
+# Trading Objectives page (https://ftmo.com/en/trading-objectives/). Note: FTMO
+# no longer offers a separate Swing product; the 2-Step is the standard
+# programme. All resets and day boundaries are 00:00 CE(S)T (Europe/Prague).
+# Every rule below was on the page's applicable-objectives list at retrieval;
+# rules absent from that list are marked not_applicable with the same evidence.
+provider: ftmo
+programme: challenge_2_step
+account_type: standard
+rule_set_version: "2026-09-21"
+
+timezone:
+  iana_zone: Europe/Prague   # GATE-005 — the page specifies 00:00 CE(S)T
+  source: "https://ftmo.com/en/trading-objectives/ (retrieved 2026-09-21)"
+
+phases:
+  challenge:
+    rules:
+      profit_target:
+        status: verified
+        value: { kind: percent_initial_capital, value: 10 }
+        breach_semantics: hits
+        breach_severity: soft
+        provenance:
+          source_url: "https://ftmo.com/en/trading-objectives/"
+          retrieved_at: "2026-09-21T21:15:00+00:00"
+      maximum_daily_loss:
+        status: verified
+        value: { kind: percent_initial_capital, value: 5 }
+        floor_basis: balance_at_reset_minus_amount   # recalculated 00:00 CE(S)T from that day's balance
+        monitored_value: equity_including_fees_and_swap
+        ratchet_on_equity: false          # GATE-003 — daily balance reset, not an equity ratchet
+        breach_semantics: falls_below
+        breach_severity: hard
+        reset_local_time: "00:00:00"
+        provenance:
+          source_url: "https://ftmo.com/en/trading-objectives/"
+          retrieved_at: "2026-09-21T21:15:00+00:00"
+      maximum_loss:
+        status: verified
+        value: { kind: percent_initial_capital, value: 10 }
+        floor_basis: initial_balance_minus_amount    # static on the 2-Step
+        monitored_value: equity_including_fees_and_swap
+        ratchet_on_equity: false
+        breach_semantics: falls_below
+        breach_severity: hard
+        provenance:
+          source_url: "https://ftmo.com/en/trading-objectives/"
+          retrieved_at: "2026-09-21T21:15:00+00:00"
+      minimum_trading_days:
+        status: verified
+        value: { kind: count, value: 4 }
+        provenance:
+          source_url: "https://ftmo.com/en/trading-objectives/"
+          retrieved_at: "2026-09-21T21:15:00+00:00"
+      time_limit_days:
+        status: not_applicable            # the page states "No time limit"
+        provenance:
+          source_url: "https://ftmo.com/en/trading-objectives/"
+          retrieved_at: "2026-09-21T21:15:00+00:00"
+  verification:
+    rules:
+      profit_target:
+        status: verified
+        value: { kind: percent_initial_capital, value: 5 }
+        breach_semantics: hits
+        breach_severity: soft
+        provenance:
+          source_url: "https://ftmo.com/en/trading-objectives/"
+          retrieved_at: "2026-09-21T21:15:00+00:00"
+      maximum_daily_loss:
+        status: verified
+        value: { kind: percent_initial_capital, value: 5 }
+        floor_basis: balance_at_reset_minus_amount
+        monitored_value: equity_including_fees_and_swap
+        ratchet_on_equity: false
+        breach_semantics: falls_below
+        breach_severity: hard
+        reset_local_time: "00:00:00"
+        provenance:
+          source_url: "https://ftmo.com/en/trading-objectives/"
+          retrieved_at: "2026-09-21T21:15:00+00:00"
+      maximum_loss:
+        status: verified
+        value: { kind: percent_initial_capital, value: 10 }
+        floor_basis: initial_balance_minus_amount
+        monitored_value: equity_including_fees_and_swap
+        ratchet_on_equity: false
+        breach_semantics: falls_below
+        breach_severity: hard
+        provenance:
+          source_url: "https://ftmo.com/en/trading-objectives/"
+          retrieved_at: "2026-09-21T21:15:00+00:00"
+      minimum_trading_days:
+        status: verified
+        value: { kind: count, value: 4 }
+        provenance:
+          source_url: "https://ftmo.com/en/trading-objectives/"
+          retrieved_at: "2026-09-21T21:15:00+00:00"
+      time_limit_days:
+        status: not_applicable
+        provenance:
+          source_url: "https://ftmo.com/en/trading-objectives/"
+          retrieved_at: "2026-09-21T21:15:00+00:00"
+  funded:
+    rules:
+      maximum_daily_loss:
+        status: verified
+        value: { kind: percent_initial_capital, value: 5 }
+        floor_basis: balance_at_reset_minus_amount
+        monitored_value: equity_including_fees_and_swap
+        ratchet_on_equity: false
+        breach_semantics: falls_below
+        breach_severity: hard
+        reset_local_time: "00:00:00"
+        provenance:
+          source_url: "https://ftmo.com/en/trading-objectives/"
+          retrieved_at: "2026-09-21T21:15:00+00:00"
+      maximum_loss:
+        status: verified
+        value: { kind: percent_initial_capital, value: 10 }
+        floor_basis: initial_balance_minus_amount
+        monitored_value: equity_including_fees_and_swap
+        ratchet_on_equity: false
+        breach_semantics: falls_below
+        breach_severity: hard
+        provenance:
+          source_url: "https://ftmo.com/en/trading-objectives/"
+          retrieved_at: "2026-09-21T21:15:00+00:00"
+      consistency_rule:
+        status: not_applicable            # not among the applicable objectives on the official page
+        provenance:
+          source_url: "https://ftmo.com/en/trading-objectives/"
+          retrieved_at: "2026-09-21T21:15:00+00:00"
+      news_restriction:
+        status: not_applicable            # not among the applicable objectives on the official page
+        provenance:
+          source_url: "https://ftmo.com/en/trading-objectives/"
+          retrieved_at: "2026-09-21T21:15:00+00:00"

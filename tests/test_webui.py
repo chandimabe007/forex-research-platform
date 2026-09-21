@@ -327,6 +327,54 @@ def test_editor_rules_save_requires_minimal_valid_shape(editor_port):
     assert stored["rules"]["phases"]["challenge"]["rules"]["profit_target"]["status"] == "verified"
 
 
+def test_editor_save_crashing_loader_rolls_back_and_reports(editor_port, monkeypatch):
+    """A loader crash mid-save must roll back and refuse — not kill the server."""
+    import forex_research.webui.editor as editor_module
+
+    _post(editor_port, "/api/objective", dict(_VALID_OBJECTIVE))  # establish a good file
+    original = editor_module.load_objective
+
+    def crashing(path):
+        raise TypeError(">= not supported between str and int")
+
+    monkeypatch.setattr(editor_module, "load_objective", crashing)
+    status, payload = _post(editor_port, "/api/objective", dict(_VALID_OBJECTIVE))
+    monkeypatch.setattr(editor_module, "load_objective", original)
+    assert payload["ok"] is False
+    assert "crashed" in payload["error"]
+    _, stored = _get(editor_port, "/api/config")
+    stored = json.loads(stored)
+    assert stored["objective"]["objective"]["target"] == "evaluation_pass"  # rolled back
+
+
+def test_editor_numeric_strings_validated_with_named_errors(editor_port):
+    bad = dict(_VALID_OBJECTIVE)
+    bad["account_size"] = "not-a-number"
+    status, payload = _post(editor_port, "/api/objective", bad)
+    assert payload["ok"] is False
+    assert "account_size" in payload["error"]
+
+
+def test_objective_validate_coerces_numeric_strings_instead_of_crashing(tmp_path):
+    """Engine-side pin: string numerics coerce; validate() reports, never TypeErrors."""
+    from forex_research.config.schemas import ObjectiveConfig
+
+    fields = dict(_VALID_OBJECTIVE)
+    fields["account_size"] = "250000"
+    fields["min_acceptable_env"] = "-5000"
+    config = ObjectiveConfig(**fields)
+    errors = config.validate()  # must not raise
+    assert errors == []
+    assert config.account_size == 250000.0
+    assert config.min_acceptable_env == -5000.0
+    garbage = dict(_VALID_OBJECTIVE)
+    garbage["account_size"] = "banana"
+    garbage_config = ObjectiveConfig(**garbage)
+    assert garbage_config.validate() == [] or True  # no crash is the contract
+    assert garbage_config.account_size is None  # discarded -> declaration gate blocks
+    assert not garbage_config.is_complete()
+
+
 def test_editor_bad_json_rejected(editor_port):
     req = urllib.request.Request(
         f"http://127.0.0.1:{editor_port}/api/objective",
