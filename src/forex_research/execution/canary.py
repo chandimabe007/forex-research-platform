@@ -434,13 +434,24 @@ def main(argv: list[str] | None = None) -> int:
         default=Path("config"),
         help="directory containing accounts.yaml",
     )
+    parser.add_argument(
+        "--terminal-path",
+        dest="terminal_path",
+        default=None,
+        help="path to the terminal64.exe to attach to; required when more than "
+        "one MT5 installation is running, otherwise the bridge may bind to "
+        "the wrong terminal",
+    )
     args = parser.parse_args(argv)
 
     allowlist = load_allowlist(args.config / "accounts.yaml")
     from .mt5_adapter import MT5Adapter
 
     outcome, path = run_canary(
-        MT5Adapter(), symbol=args.symbol, allowlist=allowlist, out_dir=args.out
+        MT5Adapter(terminal_path=args.terminal_path),
+        symbol=args.symbol,
+        allowlist=allowlist,
+        out_dir=args.out,
     )
     print(f"canary outcome: {outcome}")
     print(f"record: {path}")
