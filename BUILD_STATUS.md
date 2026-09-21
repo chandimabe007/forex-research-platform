@@ -189,3 +189,23 @@ Defense in depth for every change to `main`:
 2. **CI** — the same gate re-runs from scratch on GitHub for every push/PR;
 3. **required checks** — GitHub refuses merges into `main` until both jobs
    pass.
+
+## Web UI (2026-09-21)
+
+New, additive scope (no spec requirement governs it): a localhost-only web
+UI under `src/forex_research/webui/`, mirroring the pre-rebuild prototype's
+interface but rebuilt on the current engine's artifacts:
+
+- **Status dashboard** — `python -m forex_research.webui` (127.0.0.1:8787):
+  read-only snapshot of the newest probe and canary records, per-symbol-month
+tick coverage, episode counts against the COST-013 minimums, and fee
+schedules **with their provenance**. Stdlib `ThreadingHTTPServer`, no new
+dependencies.
+- **Config editor** — `python -m forex_research.webui.editor`
+(127.0.0.1:8788): form-based editing of the objective (PROD-010) and
+challenge-rule verification statuses (CHAL-010/011). Every save is validated
+through the platform's own loaders and **rolled back on disk** if the loader
+refuses it, so an invalid configuration can never persist. Writes only the
+two fixed config files; never credentials.
+- 15 HTTP round-trip and aggregation tests; full suite now 119.
+- Both services bind 127.0.0.1 only and store nothing.

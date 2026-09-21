@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Forex Research — Status</title>
+<style>
+  :root {
+    --bg: #0e1116; --panel: #171b22; --ink: #e6e9ee; --muted: #9aa4b2;
+    --line: #262c36; --accent: #5b8cff; --ok: #3fbf72; --warn: #e0b64a;
+    --bad: #e06666; --chip: #1e242e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 14px/1.5 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  header {
+    display: flex; align-items: baseline; gap: 12px;
+    padding: 18px 24px; border-bottom: 1px solid var(--line); background: var(--panel);
+  }
+  header h1 { margin: 0; font-size: 18px; }
+  header .sub { color: var(--muted); font-size: 12px; }
+  main { padding: 20px 24px 48px; max-width: 1180px; margin: 0 auto; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+  .card h2 { margin: 0 0 10px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .badge.ok { background: rgba(63,191,114,.15); color: var(--ok); }
+  .badge.warn { background: rgba(224,182,74,.15); color: var(--warn); }
+  .badge.bad { background: rgba(224,102,102,.15); color: var(--bad); }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); font-size: 13px; }
+  th { color: var(--muted); font-weight: 600; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .kv { display: grid; grid-template-columns: 170px 1fr; row-gap: 4px; }
+  .kv dt { color: var(--muted); }
+  .kv dd { margin: 0; font-variant-numeric: tabular-nums; }
+  .muted { color: var(--muted); }
+  .empty { color: var(--muted); font-style: italic; padding: 8px 0; }
+  .discrepancy { border-left: 3px solid var(--warn); background: rgba(224,182,74,.07); padding: 6px 10px; margin: 6px 0; font-size: 13px; border-radius: 0 6px 6px 0; }
+  .err { border-left-color: var(--bad); background: rgba(224,102,102,.07); }
+  footer { padding: 14px 24px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--line); }
+  #refresh { background: var(--chip); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 4px 12px; cursor: pointer; font-size: 12px; }
+  #refresh:hover { border-color: var(--accent); }
+  code { background: var(--chip); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Forex Research — Status</h1>
+  <span class="sub" id="generated"></span>
+  <span style="flex:1"></span>
+  <button id="refresh">Refresh</button>
+</header>
+<main>
+  <div class="grid">
+    <section class="card" id="probe-card">
+      <h2>Capability probe <span class="badge" id="probe-badge" hidden></span></h2>
+      <div id="probe-body" class="empty">loading…</div>
+    </section>
+    <section class="card" id="canary-card">
+      <h2>Execution canary <span class="badge" id="canary-badge" hidden></span></h2>
+      <div id="canary-body" class="empty">loading…</div>
+    </section>
+    <section class="card" id="capture-card">
+      <h2>Quote capture</h2>
+      <div id="capture-body" class="empty">loading…</div>
+    </section>
+    <section class="card" id="episode-card">
+      <h2>Episodes vs minimums</h2>
+      <div id="episode-body" class="empty">loading…</div>
+    </section>
+    <section class="card" id="fees-card">
+      <h2>Fee schedules &amp; provenance</h2>
+      <div id="fees-body" class="empty">loading…</div>
+    </section>
+  </div>
+</main>
+<footer>
+  Read-only view of local evidence under <code>data/</code>. Records are never edited here.
+  Probe: <code>python -m forex_research.execution.cli</code> · Canary: <code>python -m forex_research.execution.canary</code>
+</footer>
+<script>
+const $ = (id) => document.getElementById(id);
+
+function badge(id, outcome) {
+  const el = $(id);
+  el.hidden = false;
+  el.textContent = outcome;
+  el.className = "badge " + (outcome === "ok" ? "ok" : outcome.includes("discrepan") ? "warn" : "bad");
+}
+
+function kvList(pairs) {
+  const dl = document.createElement("dl");
+  dl.className = "kv";
+  for (const [k, v] of pairs) {
+    const dt = document.createElement("dt"); dt.textContent = k;
+    const dd = document.createElement("dd"); dd.textContent = v;
+    dl.append(dt, dd);
+  }
+  return dl;
+}
+
+function messages(list, cls) {
+  const frag = document.createDocumentFragment();
+  for (const m of list || []) {
+    const d = document.createElement("div");
+    d.className = "discrepancy " + (cls || "");
+    d.textContent = m;
+    frag.append(d);
+  }
+  return frag;
+}
+
+function renderProbe(p) {
+  const body = $("probe-body");
+  if (!p.record) { body.textContent = p.record_file ? `unreadable record: ${p.record_file}` : "no probe run yet — python -m forex_research.execution.cli"; return; }
+  body.classList.remove("empty");
+  body.replaceChildren(badge, kvList([
+    ["outcome", p.record.outcome],
+    ["timestamp", p.record.timestamp || "—"],
+    ["server", p.record.capabilities.server || "—"],
+    ["account currency", p.record.capabilities.account_currency || "—"],
+    ["margin mode", p.record.capabilities.margin_mode || "—"],
+    ["terminal build", p.record.capabilities.terminal_build ?? "—"],
+    ["algo trading", p.record.capabilities.trade_expert ? "enabled" : "disabled"],
+  ]));
+  body.append(messages(p.record.discrepancies), messages(p.record.errors, "err"));
+  const caps = p.record.capabilities.symbols || {};
+  if (Object.keys(caps).length) {
+    const t = document.createElement("table");
+    t.innerHTML = "<tr><th>symbol</th><th>digits</th><th>spread pts</th><th>filling</th><th>stops lvl</th></tr>";
+    for (const [name, c] of Object.entries(caps)) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${name}</td><td class="num">${c.digits}</td><td class="num">${c.spread_points}</td><td>${c.filling_mode}</td><td class="num">${c.stops_level_points}</td>`;
+      t.append(tr);
+    }
+    body.append(t);
+  }
+  badge("probe-badge", p.record.outcome);
+}
+
+function renderCanary(c) {
+  const body = $("canary-body");
+  if (!c.record) { body.textContent = c.record_file ? `unreadable record: ${c.record_file}` : "no canary run yet — python -m forex_research.execution.canary"; return; }
+  body.classList.remove("empty");
+  const r = c.record;
+  const sub = r.submit || {};
+  const rec = r.reconcile || {};
+  body.replaceChildren(kvList([
+    ["outcome", r.outcome],
+    ["finished", r.finished_at || "—"],
+    ["symbol", r.symbol || "—"],
+    ["fill", sub.fill_price ?? "—"],
+    ["wall latency", sub.wall_latency_ms != null ? `${sub.wall_latency_ms} ms` : "—"],
+    ["slippage", sub.entry_slippage_vs_decision_ask ?? "—"],
+    ["SL / TP on broker", r.protection ? `${r.protection.sl_on_broker} / ${r.protection.tp_on_broker}` : "—"],
+    ["balance Δ / modelled", rec.realized_delta != null ? `${rec.realized_delta} / ${rec.modelled_profit}` : "—"],
+  ]));
+  body.append(messages(r.discrepancies));
+  badge("canary-badge", r.outcome);
+}
+
+function renderCapture(cap) {
+  const body = $("capture-body");
+  const names = Object.keys(cap.symbols || {});
+  if (!names.length) { body.textContent = "no tick files under data/raw/venue_quotes — start the capture service"; return; }
+  body.classList.remove("empty");
+  body.replaceChildren(kvList([["total quote rows", cap.total_rows.toLocaleString("en-US")]]));
+  const t = document.createElement("table");
+  t.innerHTML = "<tr><th>symbol</th><th>file</th><th>rows</th><th>last ts</th></tr>";
+  for (const name of names) {
+    for (const m of cap.symbols[name]) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${name}</td><td>${m.file}</td><td class="num">${m.rows.toLocaleString("en-US")}</td><td class="muted">${(m.last_ts || "").replace("T", " ").slice(0, 19)}</td>`;
+      t.append(tr);
+    }
+  }
+  body.append(t);
+}
+
+function renderEpisodes(ep) {
+  const body = $("episode-body");
+  const symbols = Object.keys(ep.episodes || {});
+  if (!symbols.length) { body.textContent = "no episodes countable yet (buckets: asia, london, new_york, overlap, rollover)"; return; }
+  body.classList.remove("empty");
+  const t = document.createElement("table");
+  const buckets = ["asia", "london", "new_york", "overlap", "rollover"];
+  t.innerHTML = "<tr><th>symbol</th>" + buckets.map((b) => `<th>${b}</th>`).join("") + "</tr>";
+  for (const s of symbols) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${s}</td>` + buckets.map((b) => `<td class="num">${(ep.episodes[s] || {})[b] ?? 0}</td>`).join("");
+    t.append(tr);
+  }
+  body.append(t);
+  if (ep.minimums && Object.keys(ep.minimums).length) {
+    const p = document.createElement("p");
+    p.className = "muted";
+    p.textContent = "minimums (COST-013): " + Object.entries(ep.minimums).map(([k, v]) => `${k}=${v}`).join(", ");
+    body.append(p);
+  }
+}
+
+function renderFees(f) {
+  const body = $("fees-body");
+  const names = Object.keys(f.schedules || {});
+  if (!names.length) { body.textContent = f.error || "no fee schedules in config/fees.yaml"; return; }
+  body.classList.remove("empty");
+  for (const [server, s] of Object.entries(f.schedules)) {
+    const h = document.createElement("h3");
+    h.style.margin = "10px 0 4px";
+    h.textContent = server;
+    body.append(h);
+    body.append(kvList([
+      ["commission / lot RT", `${s.currency} ${s.commission_per_lot_round_trip}`],
+      ["swap long / short", `${s.swap_long_per_lot_per_day ?? "—"} / ${s.swap_short_per_lot_per_day ?? "—"}`],
+      ["swaps observed", s.swaps_observed ? "yes" : "no (loader refuses overnight backtests)"],
+      ["evidence", `${s.provenance.observed_on_server ? "observed on server" : "documented"} · ${s.provenance.retrieved_at || "no date"}`],
+    ]));
+    if (s.provenance.source_url) {
+      const p = document.createElement("p");
+      p.className = "muted";
+      p.textContent = "evidence: " + s.provenance.source_url;
+      body.append(p);
+    }
+  }
+}
+
+async function load() {
+  try {
+    const res = await fetch("/api/status");
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    $("generated").textContent = "updated " + data.generated_utc.replace("T", " ").slice(0, 19);
+    renderProbe(data.probe);
+    renderCanary(data.canary);
+    renderCapture(data.capture);
+    renderEpisodes(data.episodes);
+    renderFees(data.fees);
+  } catch (err) {
+    $("generated").textContent = "refresh failed: " + err.message;
+  }
+}
+
+$("refresh").addEventListener("click", load);
+load();
+setInterval(load, 30000);
+</script>
+</body>
+</html>

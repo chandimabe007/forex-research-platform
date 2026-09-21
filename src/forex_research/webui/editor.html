@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Forex Research — Configuration</title>
+<style>
+  :root {
+    --bg:#0e1116; --panel:#171b22; --panel2:#1e2536; --line:#262c36; --ink:#e6e9ee;
+    --muted:#9aa4b2; --accent:#5b8cff; --ok:#3fbf72; --bad:#e06666; --warn:#e0b64a; --chip:#1e242e;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+    font:14px/1.5 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  header { padding:18px 24px; border-bottom:1px solid var(--line); background:var(--panel);
+    display:flex; align-items:baseline; gap:12px; }
+  header h1 { margin:0; font-size:18px; }
+  header .sub { color:var(--muted); font-size:12px; }
+  main { padding:20px 24px 48px; max-width:1100px; margin:0 auto;
+    display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:16px 18px; }
+  .card h2 { margin:0 0 12px; font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+  label { display:block; margin:10px 0 3px; font-size:12px; color:var(--muted); }
+  input, select { width:100%; padding:6px 9px; background:var(--panel2); color:var(--ink);
+    border:1px solid var(--line); border-radius:6px; font:inherit; }
+  input:focus, select:focus { outline:none; border-color:var(--accent); }
+  button { background:var(--accent); border:none; color:#fff; padding:8px 18px;
+    border-radius:6px; cursor:pointer; font:inherit; font-weight:600; margin-top:14px; }
+  button:hover { filter:brightness(1.1); }
+  button:disabled { opacity:.4; cursor:not-allowed; }
+  .note { font-size:12px; color:var(--muted); margin-top:8px; }
+  #objective-msg, #rules-msg { margin-top:10px; font-size:13px; white-space:pre-wrap; }
+  .ok-msg { color:var(--ok); } .err-msg { color:var(--bad); }
+  .readiness { margin:0 0 6px; padding:8px 10px; border-radius:8px; border:1px solid var(--line); background:var(--panel2); }
+  .readiness .row { display:flex; gap:8px; align-items:baseline; padding:2px 0; font-size:13px; }
+  .dot { width:9px; height:9px; border-radius:50%; flex:none; }
+  .dot.ready { background:var(--ok); } .dot.blocked { background:var(--bad); }
+  .status-select { padding:2px 6px; font-size:12px; width:auto; }
+  table.rules { width:100%; border-collapse:collapse; margin-top:6px; }
+  table.rules th, table.rules td { text-align:left; padding:4px 6px; border-bottom:1px solid var(--line); font-size:13px; }
+  table.rules th { color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.06em; }
+  .phase-h { margin:12px 0 2px; font-size:13px; font-weight:600; }
+  h3 { margin:14px 0 4px; font-size:14px; }
+  .full { grid-column:1 / -1; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Forex Research — Configuration</h1>
+  <span class="sub">writes only config/objective.yaml and config/challenge_rules.yaml — every save validated by the platform's own loaders</span>
+</header>
+<main>
+  <section class="card full" id="readiness-card">
+    <h2>Research readiness</h2>
+    <div id="readiness-body" class="readiness">loading…</div>
+  </section>
+
+  <section class="card">
+    <h2>Objective — PROD-010</h2>
+    <form id="objective-form">
+      <label>target</label>
+      <select id="o_target">
+        <option value="">— unset —</option>
+        <option>evaluation_pass</option>
+        <option>first_payout</option>
+        <option>sustained_payouts_12m</option>
+      </select>
+      <label>horizon</label>
+      <input id="o_horizon" placeholder="e.g. 12 months" />
+      <label>target_annual_return (decimal, e.g. 0.10)</label>
+      <input id="o_target_annual_return" inputmode="decimal" />
+      <label>volatility_budget (decimal, annual)</label>
+      <input id="o_volatility_budget" inputmode="decimal" />
+      <label>retry_on_failure</label>
+      <select id="o_retry_on_failure">
+        <option value="">— unset —</option>
+        <option value="true">true</option>
+        <option value="false">false</option>
+      </select>
+      <label>account_size</label>
+      <input id="o_account_size" inputmode="decimal" />
+      <label>account_type</label>
+      <select id="o_account_type">
+        <option value="">— unset —</option>
+        <option>standard</option>
+        <option>swing</option>
+        <option>other</option>
+      </select>
+      <label>max_attempts</label>
+      <input id="o_max_attempts" inputmode="numeric" />
+      <label>max_fee_budget</label>
+      <input id="o_max_fee_budget" inputmode="decimal" />
+      <label>max_calendar_time</label>
+      <input id="o_max_calendar_time" placeholder="e.g. 6 months" />
+      <label>min_acceptable_env</label>
+      <input id="o_min_acceptable_env" placeholder="floor on net value (negative or zero)" />
+      <button type="submit">Save objective</button>
+      <div id="objective-msg"></div>
+      <p class="note">A save that fails validation is rolled back — the file on disk is never left invalid. Research entry points refuse to run until every field is set (GATE-031).</p>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Challenge rules — CHAL-010/011</h2>
+    <form id="rules-form">
+      <label>provider</label><input id="r_provider" />
+      <label>programme</label><input id="r_programme" />
+      <label>account_type</label><input id="r_account_type" />
+      <label>rule_set_version</label><input id="r_rule_set_version" />
+      <label>timezone — IANA zone (GATE-005)</label><input id="r_tz_zone" placeholder="e.g. Europe/Prague" />
+      <label>timezone — source</label><input id="r_tz_source" placeholder="where this zone was documented" />
+      <div id="rules-phases"></div>
+      <button type="submit" id="rules-save">Save rules</button>
+      <div id="rules-msg"></div>
+      <p class="note">Rule values and provenance are preserved untouched — here you set each field's verification status (CHAL-011). Research refuses to run while any rule is <code>unknown</code>.</p>
+    </form>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+let rulesData = null;      // the loaded rules dict, mutated on save
+let objectiveData = null;
+
+function readinessPanel(r) {
+  const el = $("readiness-body");
+  el.replaceChildren();
+  const head = document.createElement("div");
+  head.className = "row";
+  head.innerHTML = `<span class="dot ${r.ready ? "ready" : "blocked"}"></span><strong>${r.ready ? "READY — research entry points may run" : "NOT READY"}</strong>`;
+  el.append(head);
+  for (const c of r.checks) {
+    const row = document.createElement("div");
+    row.className = "row";
+    const d = document.createElement("span");
+    d.className = "dot " + (c.ready ? "ready" : "blocked");
+    const t = document.createElement("span");
+    t.innerHTML = `<strong>${c.name}</strong> — ${c.detail}`;
+    row.append(d, t);
+    el.append(row);
+  }
+}
+
+const OBJ_FIELDS = [
+  ["target", "o_target"], ["horizon", "o_horizon"],
+  ["target_annual_return", "o_target_annual_return"], ["volatility_budget", "o_volatility_budget"],
+  ["retry_on_failure", "o_retry_on_failure"], ["account_size", "o_account_size"],
+  ["account_type", "o_account_type"], ["max_attempts", "o_max_attempts"],
+  ["max_fee_budget", "o_max_fee_budget"], ["max_calendar_time", "o_max_calendar_time"],
+  ["min_acceptable_env", "o_min_acceptable_env"],
+];
+const NUMERIC_FIELDS = new Set(["target_annual_return", "volatility_budget", "account_size", "max_fee_budget"]);
+
+function fillObjective(obj) {
+  objectiveData = obj || {};
+  for (const [key, id] of OBJ_FIELDS) {
+    const v = objectiveData[key];
+    $(id).value = v === null || v === undefined ? "" : String(v);
+  }
+}
+
+function collectObjective() {
+  const out = {};
+  for (const [key, id] of OBJ_FIELDS) {
+    const raw = $(id).value.trim();
+    if (raw === "") { out[key] = null; continue; }
+    if (key === "retry_on_failure") out[key] = raw === "true";
+    else if (NUMERIC_FIELDS.has(key)) { const n = Number(raw); out[key] = Number.isFinite(n) ? n : raw; }
+    else if (key === "max_attempts") { const n = parseInt(raw, 10); out[key] = Number.isFinite(n) ? n : raw; }
+    else out[key] = raw;
+  }
+  return out;
+}
+
+function renderRulesPhases(rules) {
+  const host = $("rules-phases");
+  host.replaceChildren();
+  if (!rules || !rules.phases) return;
+  for (const [phaseName, phase] of Object.entries(rules.phases)) {
+    const h = document.createElement("div");
+    h.className = "phase-h";
+    h.textContent = "phase: " + phaseName;
+    host.append(h);
+    const t = document.createElement("table");
+    t.className = "rules";
+    t.innerHTML = "<tr><th>rule</th><th>status</th><th>value</th></tr>";
+    for (const [ruleName, rule] of Object.entries(phase.rules || {})) {
+      const tr = document.createElement("tr");
+      const val = rule.value && rule.value.value !== null && rule.value.value !== undefined ? rule.value.value : "—";
+      tr.innerHTML = `<td>${ruleName}</td><td></td><td class="muted">${val}</td>`;
+      const sel = document.createElement("select");
+      sel.className = "status-select";
+      for (const s of ["unknown", "verified", "not_applicable"]) {
+        const opt = document.createElement("option");
+        opt.value = s; opt.textContent = s;
+        if ((rule.status || "unknown") === s) opt.selected = true;
+        sel.append(opt);
+      }
+      sel.dataset.phase = phaseName;
+      sel.dataset.rule = ruleName;
+      sel.addEventListener("change", () => {
+        rulesData.phases[phaseName].rules[ruleName].status = sel.value;
+      });
+      tr.children[1].append(sel);
+      t.append(tr);
+    }
+    host.append(t);
+  }
+}
+
+function fillRules(rules) {
+  rulesData = rules;
+  const has = !!rules;
+  $("r_provider").value = has ? rules.provider || "" : "";
+  $("r_programme").value = has ? rules.programme || "" : "";
+  $("r_account_type").value = has ? rules.account_type || "" : "";
+  $("r_rule_set_version").value = has ? rules.rule_set_version || "" : "";
+  $("r_tz_zone").value = has && rules.timezone ? rules.timezone.iana_zone || "" : "";
+  $("r_tz_source").value = has && rules.timezone ? rules.timezone.source || "" : "";
+  renderRulesPhases(rules);
+  $("rules-save").disabled = !has;
+  if (!has) {
+    $("rules-msg").className = "note";
+    $("rules-msg").textContent = "No challenge_rules.yaml yet — copy config/challenge_rules.example.yaml to config/challenge_rules.yaml first (the loader requires at least one phase).";
+  } else {
+    $("rules-msg").textContent = "";
+  }
+}
+
+function collectRules() {
+  rulesData.provider = $("r_provider").value.trim();
+  rulesData.programme = $("r_programme").value.trim();
+  rulesData.account_type = $("r_account_type").value.trim();
+  rulesData.rule_set_version = $("r_rule_set_version").value.trim();
+  rulesData.timezone = rulesData.timezone || {};
+  rulesData.timezone.iana_zone = $("r_tz_zone").value.trim();
+  rulesData.timezone.source = $("r_tz_source").value.trim();
+  return rulesData;
+}
+
+function msg(id, result) {
+  const el = $(id);
+  el.className = result.ok ? "ok-msg" : "err-msg";
+  el.textContent = result.ok ? `saved → ${result.wrote}` : `REFUSED: ${result.error || "validation failed"}`;
+  if (result.readiness) readinessPanel(result.readiness);
+}
+
+async function load() {
+  const res = await fetch("/api/config");
+  const data = await res.json();
+  fillObjective(data.objective ? data.objective.objective || data.objective : null);
+  fillRules(data.rules);
+  readinessPanel(data.readiness);
+}
+
+$("objective-form").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const res = await fetch("/api/objective", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(collectObjective()),
+  });
+  msg("objective-msg", await res.json());
+});
+
+$("rules-form").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const res = await fetch("/api/rules", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(collectRules()),
+  });
+  msg("rules-msg", await res.json());
+});
+
+load();
+</script>
+</body>
+</html>
