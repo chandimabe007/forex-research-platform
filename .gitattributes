@@ -1,0 +1,9 @@
+# Normalize all text files to LF in the repository and on checkout.
+# This is a Windows-hosted repo: without this pin, Windows editors silently
+# commit CRLF blobs and produce whole-file diff churn (seen in 68a0af1).
+* text=auto eol=lf
+
+# Windows shell scripts genuinely need CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
