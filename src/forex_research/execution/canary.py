@@ -31,6 +31,7 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from itertools import count
 from pathlib import Path
 
 from ..config import load_allowlist
@@ -73,8 +74,17 @@ def persist_canary_record(record: CanaryRecord, *, out_dir: Path) -> Path:
         "discrepancies": record.discrepancies,
         "observations": record.observations,
     }
-    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
+    # Two writes inside one clock quantum must not overwrite each other:
+    # the Windows clock advances in coarse quanta, so distinct now() calls
+    # can return identical microsecond values (a py3.11 CI run caught the
+    # canary record being silently replaced by another run's).
+    now = datetime.now(UTC)
+    stamp = now.strftime("%Y%m%dT%H%M%S%fZ")
     path = out_dir / f"canary_{stamp}.json"
+    for n in count(1):
+        if not path.exists():
+            break
+        path = out_dir / f"canary_{stamp}_{n:02d}.json"
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     return path
 

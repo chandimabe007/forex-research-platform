@@ -20,7 +20,12 @@ from forex_research.execution.adapter import (
     SymbolInfo,
 )
 from forex_research.execution.allowlist import login_hash
-from forex_research.execution.canary import run_canary
+from forex_research.execution.canary import (
+    CANARY_SCHEMA_VERSION,
+    CanaryRecord,
+    persist_canary_record,
+    run_canary,
+)
 
 UTC = dt.UTC
 
@@ -373,3 +378,29 @@ def test_reconciliation_mismatch_is_a_discrepancy(tmp_path):
     outcome, record = _run(adapter, tmp_path)
     assert outcome == "ok_with_discrepancies"
     assert any("reconciliation mismatch" in d for d in record["discrepancies"])
+
+
+def test_persist_canary_records_never_collide(tmp_path):
+    # Same-quantum writes must not overwrite each other: the Windows clock
+    # advances in coarse quanta, so identical microsecond stamps are
+    # realistic (a py3.11 CI run caught the probe writer colliding exactly
+    # this way).
+    def record(outcome):
+        return CanaryRecord(
+            schema_version=CANARY_SCHEMA_VERSION,
+            started_at="2024-01-02T10:00:00+00:00",
+            finished_at="2024-01-02T10:00:05+00:00",
+            outcome=outcome,
+            symbol="EURUSD",
+            account_login_sha256=None,
+            steps=[],
+            discrepancies=[],
+            observations={},
+        )
+
+    ok_path = persist_canary_record(record("ok"), out_dir=tmp_path)
+    fail_path = persist_canary_record(record("failed"), out_dir=tmp_path)
+    assert ok_path != fail_path
+    assert json.loads(ok_path.read_text(encoding="utf-8"))["outcome"] == "ok"
+    assert json.loads(fail_path.read_text(encoding="utf-8"))["outcome"] == "failed"
+    assert len(list(tmp_path.glob("canary_*.json"))) == 2

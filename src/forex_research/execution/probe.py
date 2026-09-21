@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 from dataclasses import asdict
 from datetime import UTC, datetime
+from itertools import count
 from pathlib import Path
 
 from .adapter import BrokerCapabilities
@@ -34,17 +35,26 @@ def persist_probe_record(
 ) -> Path:
     """Write a redacted JSON record for every outcome (OK or failure)."""
     out_dir.mkdir(parents=True, exist_ok=True)
+    now = datetime.now(UTC)  # one clock read for the record and its filename
     record = {
         "schema_version": PROBE_SCHEMA_VERSION,
-        "timestamp": datetime.now(UTC).isoformat(),
+        "timestamp": now.isoformat(),
         "outcome": outcome,  # ok | refused | failed
         "account_login_sha256": login_hash(account_login) if account_login else None,
         "capabilities": asdict(capabilities) if capabilities else None,
         "discrepancies": discrepancies,
         "errors": errors,
     }
-    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
+    # Two writes inside one clock quantum must not overwrite each other:
+    # the Windows clock advances in coarse quanta, so distinct now() calls
+    # can return identical microsecond values (a py3.11 CI run caught the
+    # "ok" record being silently replaced by the "failed" one).
+    stamp = now.strftime("%Y%m%dT%H%M%S%fZ")
     path = out_dir / f"probe_{stamp}.json"
+    for n in count(1):
+        if not path.exists():
+            break
+        path = out_dir / f"probe_{stamp}_{n:02d}.json"
     path.write_text(json.dumps(record, indent=2), encoding="utf-8")
     return path
 

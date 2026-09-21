@@ -226,3 +226,30 @@ def test_persist_ok_and_failed_outcomes(tmp_path):
     )
     assert json.loads(ok_path.read_text())["outcome"] == "ok"
     assert json.loads(fail_path.read_text())["outcome"] == "failed"
+
+
+def test_persist_records_never_collide(tmp_path):
+    # Two writes inside one clock quantum must not overwrite each other:
+    # the Windows clock advances in coarse quanta, so identical microsecond
+    # stamps are realistic (a py3.11 CI run caught the "ok" record being
+    # silently replaced by the "failed" one).
+    ok_path = persist_probe_record(
+        out_dir=tmp_path,
+        outcome="ok",
+        account_login=42,
+        capabilities=None,
+        discrepancies=[],
+        errors=[],
+    )
+    fail_path = persist_probe_record(
+        out_dir=tmp_path,
+        outcome="failed",
+        account_login=0,
+        capabilities=None,
+        discrepancies=[],
+        errors=["boom"],
+    )
+    assert ok_path != fail_path
+    assert json.loads(ok_path.read_text())["outcome"] == "ok"
+    assert json.loads(fail_path.read_text())["outcome"] == "failed"
+    assert len(list(tmp_path.glob("probe_*.json"))) == 2
