@@ -22,6 +22,7 @@ ambiguous, the choice made is recorded here.
 | MILE-032 | Cost model COST-*, backtest engine BT-*, golden fixture | done |
 | MILE-032 (completion) | Stop exits use the COST-012 stop-exit sampler end to end; weekend-gap exits counted separately (BT-030) | done |
 | MILE-033 | Risk sizing RISK-*, challenge evaluator CHAL-*, toy strategy, end-to-end | done |
+| MILE-040 (Gate 1) | Dukascopy tick acquisition (DATA-001) + cost-to-stop c matrix with COST-014 disclosure | run complete on 4 symbols x 5 sessions x 2 timeframes x 4 stop multipliers (160 cells, all `exact` level); window 2026-09-15T23:00Z .. 2026-09-21T23:00Z; spread source: Dukascopy quote stream (venue capture still one smoke session — flagged in the record) |
 | MILE-050 (VAL-040/041/044) | Deflated Sharpe: empirical & modelled hurdles, HAC SE, auditable decisions | done; spec's VAL-041 simulation standard verified against Monte Carlo |
 | MILE-050 (VAL-045 core) | Trial ledger: append-only, hash-chained, comparability-split candidate set feeding `s_ledger` | done for data entry & the VAL-040 feed; integration into the research run loop is follow-up work |
 
