@@ -7,7 +7,7 @@ survives a GATE-022 cost veto or it never existed. The strategies share one
 feature computation (features.py) so train/validate comparisons compare
 strategies, not feature pipelines.
 
-The five families:
+The six families:
 
 1. TrendPullback   — pullback to the fast MA inside a slow-MA trend, RSI filter.
 2. OpeningRange    — break of the first N hours' range, ATR stop, session-gated.
@@ -15,6 +15,8 @@ The five families:
 4. MeanRevert      — vol-spike fade back to the fast MA (ranged sessions only).
 5. DonchianBreakout — classic N-bar channel breakout with an ATR trailing stop
                      emulated by re-arming (exit on opposite channel touch).
+6. TrailingMomentum — LondonMomentum's entry + the engine's trailing bracket
+                     (ratcheting stop, trailing take-profit).
 """
 
 from __future__ import annotations
@@ -331,9 +333,91 @@ def _nan_safe(v: float) -> float:
     return v if not math.isnan(v) else 0.0
 
 
+class TrailingMomentum(LabStrategy):
+    """The only family that survived the year-long out-of-sample gates
+    (LondonMomentum's 07:00Z London-open impulse continuation), re-armed with
+    the engine's trailing bracket: after a run-up threshold the stop ratchets
+    behind the extreme (protects profit) and the target un-caps to trail the
+    surge (catches extended upside). The original fixed-RR exit is kept as a
+    floor: the bracket never widens a loss beyond the initial 1R stop."""
+
+    name = "trailing_momentum"
+
+    def __init__(self) -> None:
+        self.impulse = None  # (day, side, extreme)
+
+    def decide(self, ctx: BarCtx, f: dict[str, list[float]]) -> Entry | None:
+        p = self.params
+        i = ctx.i
+        atr = f["atr"][i]
+        if math.isnan(atr) or atr <= 0:
+            return None
+        day = ctx.now.date()
+        hour = ctx.now.hour
+        hour_end = p.get("hour_end", 10)
+        if hour < 7 or hour >= hour_end:
+            self.impulse = None if hour >= hour_end else self.impulse
+            return None
+        if self.impulse is not None and self.impulse[0] != day:
+            self.impulse = None
+        rng = ctx.high - ctx.low
+        if self.impulse is None:
+            if rng >= p["impulse_atr"] * atr:
+                side = "long" if ctx.close > ctx.open else "short"
+                extreme = ctx.high if side == "long" else ctx.low
+                self.impulse = (day, side, extreme)
+            return None
+        _, side, extreme = self.impulse
+        if side == "long" and ctx.close > extreme:
+            self.impulse = None
+            return _mk(
+                ctx,
+                "long",
+                min(f["ll"][60][i], ctx.close - p["atr_x"] * atr),
+                p["rr"],
+                "trail-mom-long",
+            )
+        if side == "short" and ctx.close < extreme:
+            self.impulse = None
+            return _mk(
+                ctx,
+                "short",
+                max(f["hh"][60][i], ctx.close + p["atr_x"] * atr),
+                p["rr"],
+                "trail-mom-short",
+            )
+        return None
+
+    @staticmethod
+    def grid() -> list[dict]:
+        # The entry grid inherits LondonMomentum's validated region and
+        # tightens around it; the exit shape is the trailing bracket itself.
+        out = []
+        for impulse_atr in (0.75, 1.0, 1.5):
+            for rr in (1.5, 2.0, 3.0):
+                for atr_x in (1.0, 1.5):
+                    out.append(
+                        {
+                            "impulse_atr": impulse_atr,
+                            "rr": rr,
+                            "atr_x": atr_x,
+                            "hour_end": 10,
+                            "min_atr_pips": 1.0,
+                        }
+                    )
+        return out
+
+
 STRATEGIES: dict[str, type[LabStrategy]] = {
     cls.name: cls  # type: ignore[attr-defined]
-    for cls in (TrendPullback, OpeningRangeBreak, LondonMomentum, MeanRevert, DonchianBreakout)
+    for cls in (
+        TrendPullback,
+        OpeningRangeBreak,
+        LondonMomentum,
+        MeanRevert,
+        DonchianBreakout,
+        TrailingMomentum,
+    )
 }
 
 
