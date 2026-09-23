@@ -25,6 +25,7 @@ ambiguous, the choice made is recorded here.
 | MILE-040 (Gate 1) | Dukascopy tick acquisition (DATA-001) + cost-to-stop c matrix with COST-014 disclosure | run complete on 4 symbols x 5 sessions x 2 timeframes x 4 stop multipliers (160 cells, all `exact` level); window 2026-09-15T23:00Z .. 2026-09-21T23:00Z; spread source: Dukascopy quote stream (venue capture still one smoke session — flagged in the record) |
 | MILE-050 (VAL-040/041/044) | Deflated Sharpe: empirical & modelled hurdles, HAC SE, auditable decisions | done; spec's VAL-041 simulation standard verified against Monte Carlo |
 | MILE-050 (VAL-045 core) | Trial ledger: append-only, hash-chained, comparability-split candidate set feeding `s_ledger` | done for data entry & the VAL-040 feed; integration into the research run loop is follow-up work |
+| Strategy lab (screening layer) | M1 replay engine (`strategy_lab/`), 5 strategies, Dukascopy M1 acquisition (`data/candles.py`), train/validate optimizer + portfolio checker | first round complete: 5 strategies x 4 symbols x 15m/1h swept on 2025-04-01..2026-09-15 (~3.06M M1 candles); 345 trials in the VAL-045 ledger; 2 books pass the challenge gates out-of-sample (london_momentum 1h EURUSD + GBPUSD); combined $10k portfolio at 0.5% risk/trade: validate PF 2.11, full DD 4.78%, +23.3% over 17.5 months; M1-frequency control: all strategies lose (Gate 1's cost regime confirmed) |
 
 **Not yet implemented** (deliberately — they need real data or real decisions):
 - `VAL-050` holdout ledger (requires the experiment registry workflow; the
