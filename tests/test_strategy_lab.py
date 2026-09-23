@@ -20,6 +20,7 @@ import pytest
 
 from forex_research.strategy_lab.engine import (
     MAX_COST_RATIO,
+    Entry,
     M1Lab,
     hour_session_utc,
     session_spreads,
@@ -284,3 +285,135 @@ def test_strategies_smoke_on_real_week():
     res = lab.run("EURUSD", bars, strat, compute_features(bars))
     for t in res.trades:
         assert -1.3 <= t.r <= 2.2  # sanity band around -1 / +RR with costs
+
+
+# -- trailing bracket (trailing SL + trailing TP) ---------------------------
+
+
+def trail_bars() -> pl.DataFrame:
+    """3 days of hand-built M1 bars for the trailing tests.
+
+    Day 1 (Mon): flat 1.1000. Day 2 (Tue): +2 pips/min drift all day (ends
+    1.3880; no bar ever moves down, so no bracket can stop out early).
+    Day 3 (Wed): flat at the top. Individual tests mutate a copy to add a
+    decline or a surge.
+    """
+    rows: list[tuple[dt.datetime, float, float, float, float]] = []
+    t = dt.datetime(2025, 9, 1)  # Monday 00:00
+
+    def add_day(px: float, drift: float) -> None:
+        nonlocal t
+        for _ in range(1440):
+            if t.weekday() < 5:
+                o_ = px
+                px = round(px + drift, 6)
+                rows.append((t, o_, max(o_, px), min(o_, px), px))
+            t += dt.timedelta(minutes=1)
+
+    add_day(1.1000, 0.0)  # Monday: flat
+    add_day(1.1000, 2 * 0.0001)  # Tuesday: +2 pips/min all day -> 1.3880
+    add_day(1.3880, 0.0)  # Wednesday: flat at the top
+    return pl.DataFrame(
+        rows,
+        schema={
+            "ts": pl.Datetime("us"),
+            "open": pl.Float64,
+            "high": pl.Float64,
+            "low": pl.Float64,
+            "close": pl.Float64,
+        },
+        orient="row",
+    )
+
+
+class EnterTuesday:
+    """One long at Tuesday's first bar, wide bracket, never exits on its own."""
+
+    name = "enter_tuesday"
+    params = {}
+
+    def decide(self, ctx, f):
+        if ctx.now.day != 2 or ctx.now.hour != 0 or ctx.now.minute != 0:
+            return None
+        return Entry("long", ctx.close - 20 * ctx.pip_size, None, "trail-test")
+
+
+def test_trailing_stop_ratchets_and_never_looks_ahead():
+    bars = trail_bars()
+    # Turn Wednesday flat into a steady decline: the ratcheted stop must
+    # freeze at (top - sl_r * risk) and exit there — far above entry.
+    rows = bars.to_dicts()
+    px = rows[2880]["close"]
+    for k in range(720, 1440):
+        r = rows[2880 + k]
+        r["open"] = px
+        px = round(px - 2 * 0.0001, 6)
+        r["close"] = px
+        r["high"] = r["open"]
+        r["low"] = px
+    bars2 = pl.DataFrame(rows, schema=bars.schema, orient="row")
+    feats = compute_features(bars2)
+    trail = {"act_r": 1.0, "sl_r": 1.0, "tp_r": 2.0}
+    lab = M1Lab(
+        spec=Spec(),
+        spreads=FLAT_SPREADS,
+        commission_per_lot=0.0,
+        max_bars_in_trade=10_000,
+        trail=trail,
+    )
+    res = lab.run("EURUSD", bars2, EnterTuesday(), feats)
+    assert res.trades, "must trade"
+    tr = res.trades[0]
+    # The ratcheted stop follows the extreme up and locks the drift in.
+    # risk_dist = entry(1.10022, next open + 0.2pip spread) - stop0(1.0982)
+    # = 0.00202; the top of the drift is 1.3880.
+    assert tr.exit_reason == "trail_sl"
+    assert tr.exit_price == pytest.approx(1.3880 - 0.00202, abs=1e-6)
+    # The same entry without the bracket rides the decline to the end.
+    lab_static = M1Lab(
+        spec=Spec(), spreads=FLAT_SPREADS, commission_per_lot=0.0, max_bars_in_trade=10_000
+    )
+    res_static = lab_static.run("EURUSD", bars2, EnterTuesday(), feats)
+    assert res_static.trades[0].exit_reason == "end_of_data"
+    assert tr.exit_price > res_static.trades[0].exit_price
+
+
+def test_trailing_tp_catches_surge_above_static_target():
+    """Drift + one 60-pip surge bar: the trailing TP banks the surge; the
+    untrailed bracket (no fixed target here) would give it all back."""
+    bars = trail_bars()
+    rows = bars.to_dicts()
+    s = rows[2880 + 720]  # Wednesday 12:00
+    base = s["open"]
+    s.update(open=base, close=base + 55 * 0.0001, high=base + 60 * 0.0001, low=base - 1 * 0.0001)
+    # ...and give back everything after the surge (the retrace the trailing
+    # TP exists to protect against).
+    px = base + 54 * 0.0001
+    for k in range(721, 1440):
+        r = rows[2880 + k]
+        r["open"] = px
+        px = round(px - 2 * 0.0001, 6)
+        r["close"] = px
+        r["high"] = r["open"]
+        r["low"] = px
+    bars2 = pl.DataFrame(rows, schema=bars.schema, orient="row")
+    feats2 = compute_features(bars2)
+    trail = {"act_r": 1.0, "sl_r": 1.0, "tp_r": 2.0}
+    lab = M1Lab(
+        spec=Spec(),
+        spreads=FLAT_SPREADS,
+        commission_per_lot=0.0,
+        max_bars_in_trade=10_000,
+        trail=trail,
+    )
+    res = lab.run("EURUSD", bars2, EnterTuesday(), feats2)
+    lab_static = M1Lab(
+        spec=Spec(), spreads=FLAT_SPREADS, commission_per_lot=0.0, max_bars_in_trade=10_000
+    )
+    res_static = lab_static.run("EURUSD", bars2, EnterTuesday(), feats2)
+    tr, st = res.trades[0], res_static.trades[0]
+    assert st.exit_reason == "end_of_data"  # static rides the retrace down
+    assert tr.exit_reason == "trail_tp"
+    # Trailed banks at extreme_prev + tp_r * risk_dist (0.00202, spread-incl).
+    assert tr.exit_price == pytest.approx(base + 2 * 0.00202, abs=1e-6)
+    assert tr.exit_price > st.exit_price

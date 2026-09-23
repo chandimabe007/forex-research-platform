@@ -193,6 +193,7 @@ class M1Lab:
         commission_per_lot: float = 6.0,
         max_bars_in_trade: int = 480,
         flat_friday_hour_utc: int = 21,
+        trail: dict | None = None,
     ) -> None:
         self.spec = spec
         # InstrumentSpec carries Decimals; the lab runs pure-float math.
@@ -206,6 +207,7 @@ class M1Lab:
         self.commission_per_lot = commission_per_lot
         self.max_bars_in_trade = max_bars_in_trade
         self.flat_friday_hour = flat_friday_hour_utc
+        self.trail = trail
 
     # -- replay ----------------------------------------------------------
     def run(
@@ -219,7 +221,8 @@ class M1Lab:
     ) -> LabResult:
         """Replay ``bars``; ``index_offset`` maps local bar indices onto the
         global feature frame (ctx.i) when ``bars`` is a slice of a larger
-        window."""
+        window. ``self.trail`` (if set) arms the trailing bracket on every
+        new position: keys act_r, sl_r, tp_r in units of each trade's risk."""
         ts = bars["ts"].to_list()
         o = bars["open"].to_list()
         hi = bars["high"].to_list()
@@ -297,6 +300,7 @@ class M1Lab:
                 cost_ratio = sig_ctx.spread_pips * pip / intended if intended > 0 else 9e9
                 if stop_dist <= 0 or cost_ratio > MAX_COST_RATIO or intended / pip < MIN_STOP_PIPS:
                     res.cost_vetoes += 1  # GATE-022: the gate says no
+                    pos = None
                 else:
                     risk_usd = balance * self.risk_pct
                     pip_usd = pip_value_usd(self.contract, pip, entry_price, self.quote_currency)
@@ -320,27 +324,61 @@ class M1Lab:
                         "pip_usd": pip_usd,
                         "commission": commission,
                         "risk_usd": volume * (stop_dist / pip) * pip_usd,
+                        "risk_dist": stop_dist,
+                        "ext": entry_price,
+                        "trail": self.trail,
                     }
 
             # B) manage the open position on this bar. Exits resolve on the
             # side the position closes at (BT-012): longs exit at bid, shorts
             # at ask = bid + this bar's session spread.
+            # Trailing bracket (opt-in): once the run-up vs the entry clears
+            # act_r * risk_dist, the stop RATCHETS behind the best price seen
+            # (never moves back — protects profit) and the target un-caps and
+            # trails the surge at trail_r * risk_dist behind the extreme
+            # (catches extended upside). Both are computed from PREVIOUS bars'
+            # tracked extreme, so the current bar's own high can never move
+            # its own stop (no lookahead); the ratchet applies to FUTURE bars.
+            if pos is not None and pos.get("trail") is not None:
+                trail = pos["trail"]
+                is_l = pos["side"] == "long"
+                runup = (pos["ext"] - pos["entry"]) if is_l else (pos["entry"] - pos["ext"])
+                if runup >= trail["act_r"] * pos["risk_dist"]:
+                    if is_l:
+                        new_stop = pos["ext"] - trail["sl_r"] * pos["risk_dist"]
+                        if new_stop > pos["stop"]:
+                            pos["stop"] = new_stop
+                            pos["trailed"] = True
+                        new_tp = pos["ext"] + trail["tp_r"] * pos["risk_dist"]
+                        pos["target"] = (
+                            new_tp if pos["target"] is None else max(pos["target"], new_tp)
+                        )
+                    else:
+                        new_stop = pos["ext"] + trail["sl_r"] * pos["risk_dist"]
+                        if new_stop < pos["stop"]:
+                            pos["stop"] = new_stop
+                            pos["trailed"] = True
+                        new_tp = pos["ext"] - trail["tp_r"] * pos["risk_dist"]
+                        pos["target"] = (
+                            new_tp if pos["target"] is None else min(pos["target"], new_tp)
+                        )
             if pos is not None:
                 bars_held = i - pos["entry_i"]
                 is_long = pos["side"] == "long"
                 spread_usd = self.spreads[sessions[i]][0] * pip
                 if is_long:
                     stopped = lo[i] <= pos["stop"]
-                    target_hit = hi[i] >= pos["target"]
+                    target_hit = pos["target"] is not None and hi[i] >= pos["target"]
                 else:
                     stopped = hi[i] + spread_usd >= pos["stop"]
-                    target_hit = lo[i] + spread_usd <= pos["target"]
+                    target_hit = pos["target"] is not None and lo[i] + spread_usd <= pos["target"]
                 exit_price: float | None = None
                 reason = ""
                 if stopped:  # ambiguity resolves to the stop (conservative)
-                    exit_price, reason = pos["stop"], "sl"
+                    exit_price = pos["stop"]
+                    reason = "trail_sl" if pos.get("trailed") else "sl"
                 elif target_hit:
-                    exit_price, reason = pos["target"], "tp"
+                    exit_price, reason = pos["target"], ("trail_tp" if pos.get("trailed") else "tp")
                 elif bars_held >= self.max_bars_in_trade:
                     exit_price, reason = c[i], "timeout"
                 elif now.weekday() == 4 and now.hour >= self.flat_friday_hour:
@@ -353,6 +391,14 @@ class M1Lab:
                         res.daily_lockouts += 1
                     peak = max(peak, balance)
                     res.max_dd_pct = max(res.max_dd_pct, 100 * (peak - balance) / peak)
+                else:
+                    # Track the favorable extreme through the just-closed bar;
+                    # the trailing recompute above used the extreme as of the
+                    # PREVIOUS bar, so this update can only affect FUTURE bars.
+                    if is_long:
+                        pos["ext"] = max(pos["ext"], hi[i])
+                    else:
+                        pos["ext"] = min(pos["ext"], lo[i])
 
             # C) friday flat: no new entries ------------------------------
             friday_flat = now.weekday() == 4 and now.hour >= self.flat_friday_hour
